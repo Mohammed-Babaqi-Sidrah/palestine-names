@@ -16,7 +16,7 @@ from typing import Any
 def _normalize(text: str) -> str:
     """Remove diacritics and lowercase for case-insensitive Arabic/Latin match."""
     nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().replace('ـ', '').translate(str.maketrans({'ى': 'ي'}))
 
 
 # ─── 1. Linear Search by Name ─────────────────────────────────────────────────
@@ -27,7 +27,7 @@ def linear_search_by_name(records: list[dict], query: str) -> dict:
     Scans every record and returns those whose Arabic or English name
     contains the query string (normalized, case-insensitive).
     """
-    norm_query = _normalize(query.strip())
+    tokens = _normalize(query.strip()).split()
     results = []
     comparisons = 0
 
@@ -36,7 +36,7 @@ def linear_search_by_name(records: list[dict], query: str) -> dict:
         ar_norm = _normalize(rec.get("ar_name", "") or "")
         en_norm = _normalize(rec.get("en_name", "") or "")
 
-        if norm_query in ar_norm or norm_query in en_norm:
+        if all(token in ar_norm or token in en_norm for token in tokens):
             results.append(rec)
 
     return {

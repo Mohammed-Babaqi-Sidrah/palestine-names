@@ -55,3 +55,9 @@ yarn-error.log*
 # Personal notes & documentation
 forme/
 
+# Runtime names snapshot and local tooling caches
+backend/.cache/
+.npm-cache/
+frontend/test-results/
+frontend/playwright-report/
+
