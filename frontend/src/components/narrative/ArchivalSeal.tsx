@@ -1,4 +1,5 @@
 'use client';
+import { useId } from 'react';
 
 interface ArchivalSealProps {
   className?: string;
@@ -11,11 +12,12 @@ interface ArchivalSealProps {
  * dignified and historical archival aesthetic.
  */
 export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSealProps) {
+  const id = useId();
   return (
     <div
       className={`archival-seal-wrap ${className}`}
       style={{ width: size, height: size }}
-      aria-label="ختم السجل الوطني الفلسطيني للذاكرة"
+      role="img" aria-label="شارة أسماء لا تُنسى"
     >
       <svg
         viewBox="0 0 200 200"
@@ -33,7 +35,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
             fill="none"
           />
           <path
-            id="seal-bottom-curve"
+            id={`${id}-bottom`}
             d="M 172 100 A 72 72 0 0 1 28 100"
             fill="none"
           />
@@ -71,24 +73,16 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
         <circle cx="100" cy="100" r="58" stroke="#436148" strokeWidth="0.8" strokeDasharray="1.5 2.5" strokeOpacity="0.6" />
 
         {/* Top Arc Typography: Arabic Memorial Seal Title */}
-        <text className="seal-svg-text-primary" fill="#2d3f31">
-          <textPath
-            href="#seal-top-curve"
-            startOffset="50%"
-            textAnchor="middle"
-          >
-            سِجلُّ الذَّاكِرَةِ الوَطَنِيَّةِ الفِلَسْطِينِيَّة
-          </textPath>
-        </text>
+        <text x="100" y="60" textAnchor="middle" direction="rtl" className="seal-svg-text-primary" fill="#2d3f31">أسماء لا تُنسى</text>
 
         {/* Bottom Arc Typography: Archival Foundation & Scope */}
         <text className="seal-svg-text-secondary" fill="#436148">
           <textPath
-            href="#seal-bottom-curve"
+            href={`#${id}-bottom`}
             startOffset="50%"
             textAnchor="middle"
           >
-            DOCUMENTED HERITAGE · 1948–2026
+            PALESTINE · LIVING MEMORY
           </textPath>
         </text>
 
@@ -126,7 +120,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
           x="100"
           y="92"
           textAnchor="middle"
-          className="seal-center-title"
+          direction="rtl" className="seal-center-title"
           fill="#1c261e"
         >
           فلسطين
@@ -135,7 +129,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
           x="100"
           y="108"
           textAnchor="middle"
-          className="seal-center-sub"
+          direction="rtl" className="seal-center-sub"
           fill="#436148"
         >
           سِجِلُّ الخُلُود

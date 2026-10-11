@@ -279,4 +279,3 @@ def memorial():
     records = snapshot['records']
     return {'statistics': compute_statistics(records), 'dataset': metadata,
             'records': random.sample(records, min(2400, len(records)))}
-

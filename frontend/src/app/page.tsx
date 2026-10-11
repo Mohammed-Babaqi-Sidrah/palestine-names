@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import OpeningNumberScene from '@/components/narrative/OpeningNumberScene';
 import LivingCrowdScene from '@/components/narrative/LivingCrowdScene';
 import DeclarationScene from '@/components/narrative/DeclarationScene';
+import LivingArchiveScene from '@/components/narrative/LivingArchiveScene';
 import LivingStatsScene from '@/components/narrative/LivingStatsScene';
 import ArchivistLetterScene from '@/components/narrative/ArchivistLetterScene';
 import QuietFinaleScene from '@/components/narrative/QuietFinaleScene';
@@ -18,22 +19,30 @@ export default function Home() {
   useEffect(() => {
     let alive = true;
     const media = matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => useParticleStore.setState({ reducedMotion: media.matches });
+    const update = () => {
+      let preference: string | null = null;
+      try { preference = localStorage.getItem('memorial-motion-paused'); } catch { /* OS preference remains usable. */ }
+      useParticleStore.setState({ reducedMotion: preference === null ? media.matches : preference === 'true' });
+    };
     update();
     media.addEventListener('change', update);
-    Promise.all([api.getCount(), api.getSample(2400), api.getStatistics()]).then(([count, sample, statistics]) => {
-      if (alive) useParticleStore.setState({ total: count.count, records: sample.records, statistics, dataStatus: 'ready' });
-    }).catch(() => { if (alive) useParticleStore.setState({ dataStatus: 'error' }); });
-    return () => { alive = false; media.removeEventListener('change', update); };
+    const controller = new AbortController();
+    const load = () => api.getMemorial(controller.signal).then(({ records, statistics, dataset }) => {
+      if (alive) useParticleStore.setState({ total: statistics.total, records, statistics, dataset, dataStatus: 'ready' });
+    }).catch(() => { if (alive && !useParticleStore.getState().statistics) useParticleStore.setState({ dataStatus: 'error' }); });
+    void load();
+    const timer = setInterval(() => { if (!document.hidden) void load(); }, 5 * 60 * 1000);
+    return () => { alive = false; controller.abort(); clearInterval(timer); media.removeEventListener('change', update); };
   }, []);
   return <>
-    <a className="skip-link" href="#stats">انتقل إلى الإحصاء التوثيقي</a>
+    <a className="skip-link" href="#archive">انتقل إلى البحث في الأسماء</a>
     <HumanParticleCanvas /><Navbar />
     <main id="main-content">
       <OpeningNumberScene />
       <LivingCrowdScene />
       <DeclarationScene />
       <LivingStatsScene />
+      <LivingArchiveScene />
       <ArchivistLetterScene />
       <QuietFinaleScene />
     </main>

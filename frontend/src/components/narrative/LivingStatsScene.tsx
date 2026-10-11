@@ -1,163 +1,44 @@
 'use client';
-import { useMemo, useState } from 'react';
-
-interface Cohort {
-  id: string;
-  label: string;
-  range: string;
-  count: number;
-  pct: number;
-  note: string;
-}
-
+import { useState } from 'react';
+import { useParticleStore } from '@/lib/particleStore';
+const labels: { [id: string]: string } = {
+  infants: 'الأطفال دون الخامسة', children: 'الأطفال من ٥ إلى ١٤ عامًا', youth: 'من ١٥ إلى ٢٤ عامًا',
+  adults: 'من ٢٥ إلى ٤٩ عامًا', elders: 'من ٥٠ عامًا فأكثر',
+};
+const number = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString('ar-u-nu-arab');
 export default function LivingStatsScene() {
-  const [activeCohort, setActiveCohort] = useState<string | null>(null);
-
-  const cohorts: Cohort[] = useMemo(() => [
-    {
-      id: 'infants',
-      label: 'الرُضّع والأطفال دون 5 سنوات',
-      range: '0–4',
-      count: 7120,
-      pct: 9.8,
-      note: '824 رضيعاً لم يكملوا عامهم الأول قبل أن يُقتلوا، لم تصدر لبعضهم شهادات ميلاد بعد.'
-    },
-    {
-      id: 'children',
-      label: 'أطفال المدارس واليافعون',
-      range: '5–14',
-      count: 11830,
-      pct: 16.2,
-      note: 'أجيال حُرمت من مقاعد الدراسة ودفاتر الرسم وحق اللعب والحياة.'
-    },
-    {
-      id: 'youth',
-      label: 'جيل الشباب والجامعات',
-      range: '15–24',
-      count: 15200,
-      pct: 20.9,
-      note: 'طاقات إبداعية وأطباء ومهندسو الغد الذين استُشهدوا على عتبة أحلامهم.'
-    },
-    {
-      id: 'adults',
-      label: 'البالغون وسند العائلات',
-      range: '25–49',
-      count: 25480,
-      pct: 35.0,
-      note: 'آباء وأمهات تركوا خلفهم آلاف الأيتام وبيوتاً أُغلقت أبوابها إلى الأبد.'
-    },
-    {
-      id: 'elders',
-      label: 'شيوخ الأرض وشواهد النكبة',
-      range: '50+',
-      count: 13205,
-      pct: 18.1,
-      note: 'أكبرهم معمر بلغ 101 عام؛ وُلدوا قبل نكبة 1948 وشهدوا قرناً من الصمود.'
-    }
-  ], []);
-
-  const selectedData = cohorts.find(c => c.id === activeCohort);
-
-  return (
-    <section id="stats" className="chapter statistics-section" aria-labelledby="stats-title">
-      <div className="stats-split-layout">
-        {/* Dedicated Sidebar Column: Freeing the 3D space for the Olive Tree */}
-        <div className="stats-editorial-sidebar">
-          {/* Editorial Section Header */}
-          <div className="stats-header-minimal">
-            <span className="eyebrow">03 — شجرة الأجيال والذاكرة</span>
-            <h2 id="stats-title">
-              لم يكونوا أرقامًا،
-              <br />
-              بل <em>شجرة حياة</em> تمتد جذورها في الأرض.
-            </h2>
-            <p className="stats-poetic-lead">
-              تتجمع الأرواح لتشكل شجرة زيتون فلسطين ثلاثية الأبعاد؛ مرر الفأرة فوق أوراقها وأغصانها للتعرف على أصحابها.
-            </p>
+  const statistics = useParticleStore(s => s.statistics);
+  const status = useParticleStore(s => s.dataStatus);
+  const webgl = useParticleStore(s => s.webglReady);
+  const [selected, setSelected] = useState<string | null>(null);
+  const cohort = statistics?.cohorts.find(c => c.id === selected);
+  const percent = statistics?.total ? statistics.children_under_18 / statistics.total * 100 : 0;
+  return <section id="stats" className="chapter statistics-section" aria-labelledby="stats-title">
+    <div className="stats-split-layout">
+      <div className="stats-editorial-sidebar">
+        <h2 id="stats-title">أجيالٌ،<br/><em>من جذرٍ واحد.</em></h2>
+        <p className="stats-poetic-lead">نقرأ الأعمار المسجّلة، ونرى أجيالًا يجمعها اسم هذه الأرض. شجرة الذاكرة تشكيل تذكاري؛ والأعداد أدناه محسوبة من الأرشيف.</p>
+        {!statistics ? <p className="feedback" role="status">{status === 'error' ? 'تعذّر تحميل الإحصاءات. أعد تحميل الصفحة للمحاولة.' : 'نقرأ الأعمار المسجّلة…'}</p> : <>
+          <dl className="memorial-metrics">
+            <div><dt>أطفال دون الثامنة عشرة</dt><dd>{number(statistics.children_under_18)}</dd><p>{number(Math.round(percent * 10) / 10)}٪ من الأسماء المسجّلة؛ بينهم {number(statistics.infants_under_1)} دون عام.</p></div>
+            <div><dt>متوسط العمر المسجّل</dt><dd>{number(statistics.average_age)} <span>عامًا</span></dd><p>العمر الوسيط: {number(statistics.median_age)} عامًا.</p></div>
+            <div><dt>أكبر عمر مسجّل</dt><dd>{number(statistics.max_age)} <span>عامًا</span></dd><p>العمر غير متاح في {number(statistics.unknown_age)} سجل.</p></div>
+          </dl>
+          <div className="cohort-ledger" role="group" aria-label="الفئات العمرية">
+            <h3>الأجيال في السجل</h3>
+            {statistics.cohorts.map(c => <button key={c.id} type="button" aria-pressed={selected === c.id} onClick={() => setSelected(selected === c.id ? null : c.id)}>
+              <bdi>{c.range}</bdi><span className="cohort-track" aria-hidden="true"><i style={{ width: `${statistics.total_with_age ? c.count / statistics.total_with_age * 100 : 0}%` }}/></span><strong>{number(c.count)}</strong>
+              <span className="sr-only">{labels[c.id]}</span>
+            </button>)}
+            <p className="cohort-detail" role="status">{cohort ? `${labels[cohort.id]}: ${number(cohort.count)} اسمًا.` : 'اختر فئة لقراءة عدد الأسماء. تُستبعد الأعمار غير المسجّلة من التوزيع.'}</p>
           </div>
-
-          {/* 3 Striking Sculptural Metrics */}
-          <div className="stats-trio-grid">
-            <article className="stat-trio-card accent-card">
-              <span className="trio-badge">29.7٪ من الشهداء</span>
-              <strong className="trio-number">21,637</strong>
-              <h3 className="trio-title">طفلاً ويافعاً</h3>
-              <p className="trio-desc">
-                بينهم <strong>824 رضيعًا</strong> استشهدوا في شهورهم الأولى.
-              </p>
-            </article>
-
-            <article className="stat-trio-card">
-              <span className="trio-badge">جيل في ريعان شبابه</span>
-              <strong className="trio-number">28.7</strong>
-              <h3 className="trio-title">عامًا متوسط الأعمار</h3>
-              <p className="trio-desc">
-                العمر الوسيط <strong>27 عامًا</strong>، ما يؤكد استهداف شباب المستقبل.
-              </p>
-            </article>
-
-            <article className="stat-trio-card">
-              <span className="trio-badge">شاهد النكبتين</span>
-              <strong className="trio-number">101</strong>
-              <h3 className="trio-title">عامًا أكبر الشهداء سنًا</h3>
-              <p className="trio-desc">
-                مواليد 1923، نجا من نكبة 1948 ليرتقي شهيدًا مع أحفاده.
-              </p>
-            </article>
-          </div>
-
-          {/* Unified Generations Spectrum Bar */}
-          <div className="generations-spectrum-container">
-            <div className="spectrum-header">
-              <span className="spectrum-title">توزيع الأجيال عبر شجرة الذاكرة</span>
-              <span className="spectrum-hint">انقر على أي فئة للتركيز</span>
-            </div>
-
-            {/* Segmented Bar */}
-            <div className="spectrum-bar" role="group" aria-label="توزيع الفئات العمرية">
-              {cohorts.map(c => {
-                const isActive = activeCohort === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`spectrum-segment ${isActive ? 'active' : ''}`}
-                    style={{ width: `${c.pct}%` }}
-                    onClick={() => setActiveCohort(isActive ? null : c.id)}
-                    aria-pressed={isActive}
-                  >
-                    <span className="segment-label">{c.range}</span>
-                    <span className="segment-pct">{c.pct}٪</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Cohort Dynamic Note */}
-            {selectedData && (
-              <div className="spectrum-detail-box" dir="rtl">
-                <strong>{selectedData.label} ({selectedData.count.toLocaleString('ar-EG')} شهيد):</strong>
-                <span> {selectedData.note}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Lineage & AI Agent Bridge */}
-          <div className="stats-bottom-ribbon">
-            <div className="lineage-tribute">
-              <span className="lineage-seal">إبادة السلالات</span>
-              <p>
-                شُطبت أسر كاملة من السجل المدني؛ كعائلات <strong>النجار (+830)</strong>، <strong>المصري (+450)</strong>، و<strong>نصر (+420)</strong>.
-              </p>
-            </div>
-
-            <a href="#archivist" className="agent-shortcut-btn">
-              <span>البحث في السجلات</span>
-              <span className="btn-arrow" aria-hidden="true">↙</span>
-            </a>
-          </div>
-        </div>
+        </>}
+        <a className="text-link" href="#archive">اقرأ الأسماء في الأرشيف <span aria-hidden="true">←</span></a>
       </div>
-    </section>
-  );
+      <figure className="stats-visual">
+        <div className="particle-stage tree-stage" data-particle-stage aria-hidden="true">{!webgl && <span className="stage-fallback">شجرة الذاكرة</span>}</div>
+        <figcaption>شجرة من هيئات بشرية تمثّل عيّنة من الأسماء.<br/>كلّ اسم متاح للقراءة في الأرشيف.</figcaption>
+      </figure>
+    </div>
+  </section>;
 }

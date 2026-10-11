@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
@@ -86,6 +86,16 @@ export default function HumanInstancedMesh() {
   const sort = useParticleStore(s => s.sortMode);
   const query = useParticleStore(s => s.searchQuery);
   const reduced = useParticleStore(s => s.reducedMotion);
+  const stageWidth = useParticleStore(s => s.stageWidth);
+  const stageHeight = useParticleStore(s => s.stageHeight);
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void document.fonts.ready.then(() => document.fonts.load('700 360px Amiri', 'فلسطين')).then(fonts => {
+      if (alive && fonts.length) { setFontsReady(true); useParticleStore.setState({ calligraphyReady: true }); }
+    }).catch(() => { /* HTML calligraphy remains visible. */ });
+    return () => { alive = false; };
+  }, []);
   const visibleRecords = useMemo(() => {
     if (mode !== 'archive' || !archiveRecords.length) return records;
     const ids = new Set(archiveRecords.map(r => r.id));
@@ -99,8 +109,8 @@ export default function HumanInstancedMesh() {
   const current = useRef(new Float32Array(2400 * 4));
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
-  const dirty = useRef(true);
-  const w = viewport.width, h = viewport.height;
+  const w = (stageWidth || size.width) * viewport.width / size.width;
+  const h = (stageHeight || size.height) * viewport.height / size.height;
   const number = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 1400; canvas.height = 350;
@@ -174,13 +184,14 @@ export default function HumanInstancedMesh() {
 
   // Memoized points forming the Arabic Calligraphy of «فلسطين» (Palestine)
   const palestineCalligraphy = useMemo(() => {
-    if (typeof document === 'undefined') return [];
+    if (!fontsReady) return [];
     const canvas = document.createElement('canvas');
     canvas.width = 1600;
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return [];
     ctx.font = 'bold 360px "Amiri", "IBM Plex Sans Arabic", serif';
+    ctx.direction = 'rtl';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('فلسطين', 800, 300);
@@ -195,7 +206,7 @@ export default function HumanInstancedMesh() {
     }
     if (!points.length) return [];
     return Array.from({ length: count }, (_, i) => points[Math.floor((i * points.length) / Math.max(count, 1))]);
-  }, [count]);
+  }, [count, fontsReady]);
 
   const targets = useMemo(() => {
     const values = new Float32Array(count * 4);
@@ -208,17 +219,17 @@ export default function HumanInstancedMesh() {
 
       if(mode === 'number' || mode === 'hero') {
         const point = number[i] || [700,175];
-        x=(point[0]/1400-.5)*w*(mobile ? 1.09 : 1.0);
-        y=-(point[1]/350-.5)*Math.min(h*.34,w*.32)+h*.005;
+        x=(point[0]/1400-.5)*w*.96;
+        y=-(point[1]/350-.5)*w*.24;
         scale=mobile ? .043 : .062; z=0;
       } else if(mode === 'scatter') {
         // Sovereign borders and territory of Palestine
         const pt = palestinePoints[i] || [0.5, 0.5, true];
         const [nx, ny, isBorder] = pt;
-        const mapH = mobile ? Math.min(h * 0.62, w * 1.18) : Math.min(h * 0.78, w * 0.52);
+        const mapH = Math.min(h * .88, w * 2.1);
         const mapW = mapH / 2.57;
-        const xCenter = mobile ? 0 : -w * 0.13;
-        const yCenter = mobile ? -h * 0.04 : -h * 0.02;
+        const xCenter = 0;
+        const yCenter = 0;
 
         x = (nx - 0.48) * mapW + xCenter;
         y = (ny - 0.50) * mapH + yCenter;
@@ -241,8 +252,8 @@ export default function HumanInstancedMesh() {
       } else if(mode === 'stats') {
         // Creative 4th Shape: The Olive Tree of Memory & Roots (شجرة الزيتون والذاكرة)
         // Positioned in the left open stage, completely separate from the sidebar cards on the right
-        const xCenter = mobile ? 0 : -w * 0.23;
-        const treeWidth = mobile ? w : w * 0.52;
+        const xCenter = 0;
+        const treeWidth = w * .94;
         const ratio = i / Math.max(count, 1);
 
         if (ratio < 0.28) {
@@ -278,10 +289,10 @@ export default function HumanInstancedMesh() {
       } else if(mode === 'finale') {
         // Monumental Arabic Calligraphy: «فلسطين» (Palestine) formed by all souls
         const pt = palestineCalligraphy[i] || [800, 300];
-        const calligW = w * (mobile ? 1.05 : 0.88);
+        const calligW = Math.min(w * .96, h * 1600 / 600);
         const calligH = (calligW / 1600) * 600;
         x = (pt[0] / 1600 - 0.5) * calligW;
-        y = -(pt[1] / 600 - 0.5) * calligH + (mobile ? -h * 0.04 : -h * 0.01);
+        y = -(pt[1] / 600 - 0.5) * calligH;
         z = (c - 0.5) * 0.9;
         scale = mobile ? 0.052 : 0.065;
       }
@@ -291,25 +302,18 @@ export default function HumanInstancedMesh() {
   },[count,w,h,size.width,mode,number,palestinePoints,palestineCalligraphy,archiveRecords,visibleRecords,query,sort]);
 
   useEffect(() => {
-    dirty.current = true; hovered.current=-1;
+    hovered.current=-1;
     useParticleStore.setState({ hoveredRecord: null, hoveredScreenPos: null });
     invalidate();
   },[targets,reduced,invalidate]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode) { dirty.current=true; invalidate(); }
+    if(s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
   }),[invalidate]);
-
-  useEffect(() => {
-    const onScroll = () => { dirty.current = true; invalidate(); };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [invalidate]);
 
   useEffect(() => {
     const clear = () => {
       pointer.current={x:-9999,y:-9999};
-      dirty.current=true;
       hovered.current=-1;
       useParticleStore.setState({ hoveredRecord:null, hoveredScreenPos:null });
       invalidate();
@@ -327,40 +331,55 @@ export default function HumanInstancedMesh() {
       if(event.pointerType==='touch') return;
       if(isInteractive(event.target)) { clear(); return; }
       pointer.current={x:event.clientX,y:event.clientY};
-      dirty.current=true;
       invalidate();
     };
 
     const tap = (event: PointerEvent) => {
+      if (!gesture.current || Math.hypot(event.clientX - gesture.current.x, event.clientY - gesture.current.y) > 8 || Math.abs(window.scrollY - gesture.current.scroll) > 8) return;
+      gesture.current = null;
       if(isInteractive(event.target)) return;
+      const stage = useParticleStore.getState();
+      if (!stage.stageVisible || stage.selectedRecord) return;
       if(!['number','scatter','stats','finale'].includes(useParticleStore.getState().mode)) return;
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
-        const dx=(current.current[i*4]/w+.5)*size.width-event.clientX;
-        const dy=(.5-current.current[i*4+1]/h)*size.height-event.clientY;
+        const dx=current.current[i*4]/viewport.width*size.width + stage.stageX-event.clientX;
+        const dy=stage.stageY-current.current[i*4+1]/viewport.height*size.height-event.clientY;
         const d=dx*dx+dy*dy;
         if(d<distance) { distance=d; index=i; }
       }
       if(index>=0 && visibleRecords[index]) useParticleStore.setState({ selectedRecord:visibleRecords[index] });
     };
 
+    const gesture = { current: null as { x: number; y: number; scroll: number } | null };
+    const down = (event: PointerEvent) => { gesture.current = { x: event.clientX, y: event.clientY, scroll: window.scrollY }; };
+    const cancel = () => { gesture.current = null; };
+    window.addEventListener('pointerdown',down,{passive:true});
+    window.addEventListener('pointercancel',cancel,{passive:true});
     window.addEventListener('pointermove',move,{passive:true});
     window.addEventListener('pointerup',tap,{passive:true});
     window.addEventListener('scroll',clear,{passive:true});
     document.addEventListener('pointerleave',clear);
+    document.addEventListener('visibilitychange',clear);
     return () => {
+      window.removeEventListener('pointerdown',down);
+      window.removeEventListener('pointercancel',cancel);
       window.removeEventListener('pointermove',move);
       window.removeEventListener('pointerup',tap);
       window.removeEventListener('scroll',clear);
       document.removeEventListener('pointerleave',clear);
+      document.removeEventListener('visibilitychange',clear);
     };
-  },[count,visibleRecords,w,h,size.width,size.height,invalidate]);
+  },[count,visibleRecords,w,h,size.width,size.height,viewport.width,viewport.height,invalidate]);
 
   useEffect(() => () => { geometry.dispose(); material.dispose(); },[geometry,material]);
 
   useFrame((state, delta) => {
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
+    if (!pState.stageVisible || document.hidden) return;
+    const offsetX = (pState.stageX / size.width - .5) * viewport.width;
+    const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
     let unsettled=false;
     const time = state.clock.getElapsedTime();
@@ -370,8 +389,8 @@ export default function HumanInstancedMesh() {
     let pick=-1, distance=140;
 
     if(pickable) for(let i=0;i<count;i++) {
-      const dx=(current.current[i*4]/w+.5)*size.width-pointer.current.x;
-      const dy=(.5-current.current[i*4+1]/h)*size.height-pointer.current.y;
+      const dx=current.current[i*4]/viewport.width*size.width + pState.stageX-pointer.current.x;
+      const dy=pState.stageY-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
       const d=dx*dx+dy*dy;
       if(d<distance) {distance=d;pick=i;}
     }
@@ -382,21 +401,12 @@ export default function HumanInstancedMesh() {
         hoveredRecord: pick>=0 ? visibleRecords[pick] : null,
         hoveredScreenPos: pick>=0 ? { ...pointer.current } : null
       });
-      dirty.current=true;
     }
 
-    const detach=mode==='number'&&!reduced ? Math.max(0,Math.min(1,(pState.chapterProgress-.13)*1.8)) : 0;
-
-    for(let i=0;i<count;i++) {
+for(let i=0;i<count;i++) {
       let tx=targets[i*4], ty=targets[i*4+1], tz=targets[i*4+2], ts=targets[i*4+3];
 
-      if(detach>0) {
-        tx=THREE.MathUtils.lerp(tx,(random(i)-.5)*w*.85,detach);
-        ty=THREE.MathUtils.lerp(ty,(random(i,1)-.5)*h*.58,detach);
-        ts=THREE.MathUtils.lerp(ts,.095,detach);
-      }
-
-      // Mode-specific organic fluid motions
+// Mode-specific organic fluid motions
       if(!reduced && mode === 'finale') {
         // Living constellation breathing in the calligraphy of Palestine
         tx += Math.sin(time * 0.65 + i * 0.15) * (w * 0.0015);
@@ -425,7 +435,7 @@ export default function HumanInstancedMesh() {
         current.current[index]+=diff*factor;
       }
 
-      dummy.position.set(current.current[i*4],current.current[i*4+1],current.current[i*4+2]);
+      dummy.position.set(current.current[i*4] + offsetX,current.current[i*4+1] + offsetY,current.current[i*4+2]);
       dummy.scale.setScalar(Math.max(.001,current.current[i*4+3]));
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i,dummy.matrix);
@@ -467,7 +477,6 @@ export default function HumanInstancedMesh() {
 
     mesh.current.instanceMatrix.needsUpdate=true;
     if(mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate=true;
-    dirty.current=false;
     if(unsettled) invalidate();
   });
   return <instancedMesh ref={mesh} args={[geometry,material,count]} frustumCulled={false} />;

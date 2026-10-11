@@ -3,7 +3,7 @@
  * Controls scene mode, hover state, search highlights, and camera.
  */
 import { create } from 'zustand';
-import type { Record, Statistics } from './types';
+import type { Record, Statistics, DatasetMetadata } from './types';
 
 export type SceneMode =
   | 'hero'        // pre-scatter, number shape
@@ -19,6 +19,13 @@ export type SceneMode =
 interface ParticleState {
   total: number | null;
   statistics: Statistics | null;
+  dataset: DatasetMetadata | null;
+  stageWidth: number;
+  stageHeight: number;
+  stageX: number;
+  stageY: number;
+  stageVisible: boolean;
+  calligraphyReady: boolean;
   dataStatus: 'loading' | 'ready' | 'error';
   reducedMotion: boolean;
   webglReady: boolean;
@@ -49,8 +56,15 @@ interface ParticleState {
 export const useParticleStore = create<ParticleState>((set) => ({
   total: null,
   statistics: null,
+  dataset: null,
+  stageWidth: 0,
+  stageHeight: 0,
+  stageX: 0,
+  stageY: 0,
+  stageVisible: false,
+  calligraphyReady: false,
   dataStatus: 'loading',
-  reducedMotion: false,
+  reducedMotion: true,
   webglReady: false,
   chapterProgress: 0,
   selectedRecord: null,

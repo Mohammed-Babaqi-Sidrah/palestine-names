@@ -45,4 +45,3 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(agent, 'get_records', return_value=RECORDS):
             stats = json.loads(agent.get_archive_statistics.invoke({}))
         self.assertEqual(stats['median_age'], 12)
-

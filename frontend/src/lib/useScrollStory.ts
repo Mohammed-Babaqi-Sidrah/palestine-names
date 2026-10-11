@@ -1,79 +1,53 @@
 'use client';
 import { useEffect } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useParticleStore, type SceneMode } from './particleStore';
 export const CHAPTERS: { id: string; label: string; mode: SceneMode }[] = [
   { id: 'number', label: 'البداية', mode: 'number' },
   { id: 'crowd', label: 'خارطة الذاكرة', mode: 'scatter' },
   { id: 'declaration', label: 'اسم واحد', mode: 'names' },
   { id: 'stats', label: 'شجرة الذاكرة', mode: 'stats' },
+  { id: 'archive', label: 'الأسماء', mode: 'archive' },
   { id: 'archivist', label: 'حارس الأرشيف', mode: 'archivist' },
   { id: 'finale', label: 'ما يبقى', mode: 'finale' },
 ];
+
 export function useScrollStory() {
   useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-    let rafId: number;
-
+    let frame = 0;
     const sync = () => {
+      frame = 0;
       const vh = window.innerHeight;
-      const scrollY = window.scrollY;
-      const docHeight = Math.max(1, document.documentElement.scrollHeight - vh);
-      const focus = vh * 0.4;
-      
       let active = CHAPTERS[0];
       for (const chapter of CHAPTERS) {
-        const el = document.getElementById(chapter.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= focus) {
-            active = chapter;
-          }
-        }
+        const rect = document.getElementById(chapter.id)?.getBoundingClientRect();
+        if (rect && rect.top <= vh * .4) active = chapter;
       }
-
-      const activeEl = document.getElementById(active.id);
-      const rect = activeEl?.getBoundingClientRect();
-      const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * 0.3))) : 0;
-
+      const section = document.getElementById(active.id);
+      const rect = section?.getBoundingClientRect();
+      const stage = section?.querySelector('[data-particle-stage]')?.getBoundingClientRect();
+      const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * .3))) : 0;
+      const height = Math.max(1, document.documentElement.scrollHeight - vh);
       useParticleStore.setState({
-        mode: active.mode,
-        chapterProgress: progress,
-        scrollProgress: scrollY / docHeight,
+        mode: active.mode, chapterProgress: progress,
+        scrollProgress: Math.max(0, Math.min(1, window.scrollY / height)),
+        stageWidth: stage?.width || 0, stageHeight: stage?.height || 0,
+        stageX: stage ? stage.left + stage.width / 2 : window.innerWidth / 2,
+        stageY: stage ? stage.top + stage.height / 2 : vh / 2,
+        stageVisible: Boolean(stage && stage.bottom > 88 && stage.top < vh),
       });
     };
-
-    const handleScroll = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(sync);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', sync, { passive: true });
-
-    const trigger = ScrollTrigger.create({
-      start: 0,
-      end: 'max',
-      onUpdate: sync,
-      onRefresh: sync,
-    });
-
-    const observer = new ResizeObserver(() => {
-      ScrollTrigger.refresh();
-      sync();
-    });
-
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(sync); };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    const observer = new ResizeObserver(schedule);
     const main = document.querySelector('main');
     if (main) observer.observe(main);
-
+    void document.fonts.ready.then(schedule);
     sync();
-
     return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', sync);
-      trigger.kill();
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
       observer.disconnect();
     };
   }, []);

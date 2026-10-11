@@ -1,17 +1,18 @@
 'use client';
+import { useParticleStore } from '@/lib/particleStore';
 
 export default function LivingCrowdScene() {
+  const webgl = useParticleStore(s => s.webglReady);
   return (
     <section id="crowd" className="chapter crowd" aria-labelledby="crowd-title">
       <div className="chapter-heading">
-        <span className="eyebrow">01 — خارطة الذاكرة الحية</span>
         <h2 id="crowd-title">
           حين تنظر للأرض،
           <br />
           ترى <em>أرواحهم.</em>
         </h2>
         <p>
-          تتشكّل حدود فلسطين التاريخية من 72 ألف جسد وروح؛ من رأس الناقورة إلى خليج العقبة، ومن البحر إلى النهر.
+          تتشكّل خارطة فلسطين من هيئات بشرية تمثّل عيّنة من الأسماء المحفوظة؛ من البحر إلى النهر.
           لم يكونوا أرقاماً عابرة، بل كانوا شعباً، وأرضاً، وهوية.
         </p>
       </div>
@@ -23,11 +24,11 @@ export default function LivingCrowdScene() {
         </div>
         <div className="crowd-tag">
           <span className="tag-dot" aria-hidden="true" />
-          <span>72,835 هيئة بشرية في تشكيل حي</span>
+          <span>عيّنة مرئية من سجلات الأرشيف</span>
         </div>
         <div className="crowd-tag">
           <span className="tag-dot" aria-hidden="true" />
-          <span>كل نقطة توثق إنساناً وحياة سُلبت</span>
+          <span>كل هيئة مرتبطة باسم في السجل</span>
         </div>
       </div>
 
@@ -38,9 +39,7 @@ export default function LivingCrowdScene() {
         <cite>— محمود درويش</cite>
       </blockquote>
 
-      <p className="scene-footnote">
-        خارطة فلسطين تتجسّد من آلاف الهيئات ثلاثية الأبعاد؛ كل هيئة مرتبطة بسجل فعلي موثق.
-      </p>
+      <figure className="crowd-visual"><div className="particle-stage map-stage" data-particle-stage aria-hidden="true">{!webgl && <span className="stage-fallback">فلسطين · الذاكرة</span>}</div><figcaption>تشكيل تذكاري، لا يعبّر عن أماكن الأفراد.<br/><a className="text-link" href="#archive">اقرأ الأسماء</a></figcaption></figure>
     </section>
   );
 }

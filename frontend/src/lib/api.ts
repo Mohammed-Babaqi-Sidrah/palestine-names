@@ -3,11 +3,11 @@
  * All endpoints return real data from the dataset.
  */
 
-import type { Record, PaginatedResponse, SearchResult, SortResult, Statistics } from './types';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+import type { Record, PaginatedResponse, SearchResult, SortResult, Statistics, MemorialResponse } from './types';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '');
 
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+async function apiFetch<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000) });
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${path}`);
   }
@@ -17,6 +17,8 @@ async function apiFetch<T>(path: string): Promise<T> {
 // ─── Records ─────────────────────────────────────────────────
 
 export const api = {
+  getMemorial: (signal?: AbortSignal) => apiFetch<MemorialResponse>('/memorial', signal),
+  browseRecords: (params: URLSearchParams, signal?: AbortSignal) => apiFetch<PaginatedResponse<Record>>(`/records?${params}`, signal),
   /** Total count of records */
   getCount: () => apiFetch<{ count: number }>('/records/count'),
 
@@ -70,6 +72,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, model }),
+      signal: AbortSignal.timeout(90000),
     }).then(async res => {
       if (!res.ok) {
         throw new Error(`Agent error ${res.status}`);

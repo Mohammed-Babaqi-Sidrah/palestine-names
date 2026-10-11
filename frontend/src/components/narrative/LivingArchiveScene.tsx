@@ -1,448 +1,99 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { Search, X, ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useParticleStore } from '@/lib/particleStore';
-import type { Record, Pagination } from '@/lib/types';
+import type { Record, PaginatedResponse } from '@/lib/types';
+import DatasetNote from '@/components/DatasetNote';
 
-type SearchKind = 'name' | 'age' | 'date';
-type Sort = 'none' | 'name' | 'age';
-
-const CURATED_DRAWS = [
-  { label: 'عائلة النجار', kind: 'name' as SearchKind, query: 'النجار', icon: '📜' },
-  { label: 'عائلة الأسطل', kind: 'name' as SearchKind, query: 'الأسطل', icon: '📜' },
-  { label: 'عائلة شبات', kind: 'name' as SearchKind, query: 'شبات', icon: '📜' },
-  { label: 'عائلة الفرا', kind: 'name' as SearchKind, query: 'الفرا', icon: '📜' },
-  { label: 'أطفال دون عام (رُضّع)', kind: 'age' as SearchKind, query: '0', icon: '👶' },
-  { label: 'كبار السن (حماة الذاكرة)', kind: 'age' as SearchKind, query: '75', icon: '🕊️' },
-];
-
-const SEARCH_TABS: { id: SearchKind; label: string; icon: string; placeholder: string }[] = [
-  { id: 'name', label: 'بالاسم والعائلة', icon: '🔍', placeholder: 'ابحث بالاسم الأول أو اسم العائلة (مثلاً: النجار، مريم، أحمد…)' },
-  { id: 'age', label: 'بالعمر والسنوات', icon: '⏳', placeholder: 'أدخل العمر (مثلاً: 0 للرضع، 5 للأطفال، 70 للمسنين…)' },
-  { id: 'date', label: 'بتاريخ الميلاد', icon: '📅', placeholder: 'حدد تاريخ الميلاد' },
-];
+type Filters = { q: string; age: string; sort: 'source' | 'name' | 'age'; ascending: boolean; page: number };
+const defaults: Filters = { q: '', age: '', sort: 'source', ascending: true, page: 1 };
+const number = (n: number) => n.toLocaleString('ar-u-nu-arab');
+function readFilters(): Filters {
+  const p = new URLSearchParams(window.location.search);
+  const sort = p.get('sort');
+  return { q: (p.get('q') || '').slice(0, 200), age: p.get('age') || '',
+    sort: sort === 'name' || sort === 'age' ? sort : 'source', ascending: p.get('ascending') !== 'false',
+    page: Math.max(1, Math.floor(Number(p.get('page')) || 1)) };
+}
 
 export default function LivingArchiveScene() {
-  const [query, setQuery] = useState('');
-  const [kind, setKind] = useState<SearchKind>('name');
-  const [dateTo, setDateTo] = useState('');
-  const [sort, setSort] = useState<Sort>('none');
-  const [ascending, setAscending] = useState(true);
-  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<Filters>(defaults);
+  const [hydrated, setHydrated] = useState(false);
+  const [composing, setComposing] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [result, setResult] = useState<{ records: Record[]; pagination: Pagination; note: string; algoBadge: string } | null>(null);
+  const [result, setResult] = useState<PaginatedResponse<Record> | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const request = useRef(0);
-
+  const input = useRef<HTMLInputElement>(null);
+  const navigation = useRef(false);
+  const total = useParticleStore(s => s.total);
+  const invalidAge = filters.age !== '' && (!Number.isInteger(Number(filters.age)) || Number(filters.age) < 0 || Number(filters.age) > 150);
   useEffect(() => {
-    const version = ++request.current;
-    let alive = true;
+    const restore = () => { navigation.current = false; setFilters(readFilters()); setHydrated(true); };
+    restore();
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, []);
+  useEffect(() => {
+    if (!hydrated || composing || invalidAge) return;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setStatus('loading');
-      const started = performance.now();
-      useParticleStore.setState({
-        archiveRecords: [],
-        highlightIds: new Set(),
-        searchQuery: query,
-        sortMode: sort,
-        sortAscending: ascending
-      });
-
-      try {
-        const searching = query.trim().length > 0 || (kind === 'date' && dateTo !== '');
-        let records: Record[], pagination: Pagination, note: string, algoBadge: string;
-
-        if (searching) {
-          const res = kind === 'name'
-            ? await api.searchByName(query, page, 12)
-            : kind === 'age'
-            ? await api.searchByAge(Number(query) || 0, 0, page, 12)
-            : await api.searchByDate(query || undefined, dateTo || undefined, page, 12);
-          records = res.results;
-          pagination = res.pagination;
-          note = `${res.algorithm} · ${res.complexity}`;
-          algoBadge = `${res.algorithm} (${res.complexity})`;
-        } else if (sort !== 'none') {
-          const res = sort === 'age'
-            ? await api.sortByAge(ascending, page, 12)
-            : await api.sortByName(ascending, page, 12);
-          records = res.results;
-          pagination = res.pagination;
-          note = `${res.algorithm} · ${res.complexity}`;
-          algoBadge = `${res.algorithm} (${res.complexity})`;
-        } else {
-          const res = await api.getRecords(page, 12);
-          records = res.items;
-          pagination = { total: res.total, page: res.page, page_size: res.page_size, total_pages: res.total_pages };
-          note = 'Archive Index · Natural record order';
-          algoBadge = 'Index Scan O(1)';
-        }
-
-        if (!alive || version !== request.current) return;
-        const elapsed = Math.round(performance.now() - started);
-        setResult({
-          records,
-          pagination,
-          note: `${note} · نفذت في ${elapsed} ملي ثانية`,
-          algoBadge: `${algoBadge} · ${elapsed}ms`
-        });
-        setStatus('ready');
-        useParticleStore.setState({
-          archiveRecords: records,
-          highlightIds: new Set(records.map(r => r.id))
-        });
-      } catch {
-        if (alive && version === request.current) {
-          setStatus('error');
-          setResult(null);
-        }
+      const params = new URLSearchParams({ page: String(filters.page), page_size: '12', sort: filters.sort, ascending: String(filters.ascending) });
+      if (filters.q.trim()) params.set('q', filters.q.trim());
+      if (filters.age !== '') params.set('age', filters.age);
+      const url = new URL(window.location.href);
+      for (const key of ['q', 'age', 'sort', 'ascending', 'page']) {
+        const value = params.get(key);
+        if (value && value !== String(defaults[key as keyof Filters])) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
       }
-    }, query ? 280 : 0);
-
-    return () => { alive = false; clearTimeout(timer); };
-  }, [query, kind, dateTo, sort, ascending, page, retry]);
-
-  const changeQuery = (value: string) => {
-    setQuery(value);
-    setSort('none');
-    setPage(1);
-    setStatus('loading');
-  };
-
-  const applyCurated = (draw: typeof CURATED_DRAWS[0]) => {
-    setKind(draw.kind);
-    setQuery(draw.query);
-    setDateTo('');
-    setSort('none');
-    setPage(1);
-    setStatus('loading');
-  };
-
-  const currentTab = SEARCH_TABS.find(t => t.id === kind) || SEARCH_TABS[0];
-
-  return (
-    <section id="archive" className="chapter archive" aria-labelledby="archive-title">
-      {/* Editorial Section Header with Archival Seal */}
-      <div className="archive-intro">
-        <div>
-          <div className="archive-header-badge">
-            <span className="wax-seal" aria-hidden="true">⚜</span>
-            <span className="eyebrow">02 — سِجل الذاكرة والأسماء</span>
-          </div>
-          <h2 id="archive-title">
-            ابحث عن <em>اسم.</em>
-            <br />
-            استحضر حياةً وحكاية.
-          </h2>
-        </div>
-        <div className="archive-stats-card">
-          <span className="stats-seal">وثيقة رقمية</span>
-          <p>
-            <strong>72,835</strong>
-            <span>اسمًا وسجلاً موثقًا في قطاع غزة</span>
-          </p>
-          <small className="stats-hint">فرز وبحث خوارزمي فوري من البيانات الحقيقية</small>
-        </div>
+      if (url.href !== window.location.href) {
+        if (navigation.current) window.history.pushState(null, '', url);
+        else window.history.replaceState(null, '', url);
+      }
+      navigation.current = false;
+      try {
+        const data = await api.browseRecords(params, controller.signal);
+        if (controller.signal.aborted) return;
+        setResult(data);
+        setStatus('ready');
+        if (data.page !== filters.page) setFilters(f => ({ ...f, page: data.page }));
+        useParticleStore.setState({ archiveRecords: data.items });
+      } catch {
+        if (!controller.signal.aborted) { setStatus('error'); setResult(null); }
+      }
+    }, filters.q ? 300 : 0);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [filters, retry, hydrated, composing, invalidAge]);
+  const change = (next: Partial<Filters>) => { navigation.current = 'sort' in next || 'page' in next; setFilters(f => ({ ...f, ...next, page: next.page ?? 1 })); setStatus('loading'); };
+  const clear = () => { change({ q: '', age: '' }); input.current?.focus(); };
+  return <section id="archive" className="chapter archive" aria-labelledby="archive-title">
+    <div className="archive-intro"><div><h2 id="archive-title">يبقى <em>الاسم.</em></h2><p className="archive-lead">ابحث، اقرأ، واستحضر إنسانًا وراء كلّ سجل.</p></div>
+      <p className="archive-total"><strong>{total === null ? '—' : number(total)}</strong><span>اسمًا في الأرشيف</span></p></div>
+    <div className="archive-workspace">
+      <form noValidate className="archive-filters" onSubmit={e => { e.preventDefault(); setRetry(r => r + 1); }}>
+        <div className="archive-search-field"><label htmlFor="archive-query">الاسم أو اسم العائلة</label><div className="archive-input-wrap"><Search size={20} aria-hidden="true"/><input ref={input} id="archive-query" type="search" maxLength={200} placeholder="بالعربية أو بالإنجليزية" value={filters.q} onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} onChange={e => change({ q: e.target.value })}/>{filters.q && <button type="button" aria-label="مسح البحث" onClick={() => { change({ q: '' }); input.current?.focus(); }}><X size={18}/></button>}</div></div>
+        <div><label htmlFor="archive-age">العمر المسجّل</label><input id="archive-age" type="number" min={0} max={150} placeholder="كل الأعمار" value={filters.age} aria-invalid={invalidAge} aria-describedby={invalidAge ? 'age-error' : undefined} onChange={e => change({ age: e.target.value })}/></div>
+        <div><label htmlFor="archive-sort">ترتيب الأسماء</label><select id="archive-sort" value={`${filters.sort}:${filters.ascending}`} onChange={e => { const [sort, direction] = e.target.value.split(':'); change({ sort: sort as Filters['sort'], ascending: direction === 'true' }); }}>
+          <option value="source:true">كما وردت في المصدر</option><option value="name:true">الاسم · أ إلى ي</option><option value="name:false">الاسم · ي إلى أ</option><option value="age:true">العمر · الأصغر أولًا</option><option value="age:false">العمر · الأكبر أولًا</option></select></div>
+        {invalidAge && <p id="age-error" className="field-error">أدخل عمرًا صحيحًا من ٠ إلى ١٥٠.</p>}
+      </form>
+      <div className="archive-results" aria-busy={status === 'loading' && !invalidAge}>
+        <p className="archive-results-status" role="status">{invalidAge ? 'صحّح العمر لعرض النتائج.' : status === 'loading' ? 'جارٍ تحميل الأسماء…' : status === 'error' ? 'تعذّر تحميل الأسماء.' : `${number(result?.total || 0)} اسمًا${filters.q || filters.age ? ' يطابق البحث' : ''}`}</p>
+        {!invalidAge && status === 'error' ? <div className="archive-feedback"><p>لم نتمكن من الوصول إلى الأرشيف. احتفظنا ببحثك لتتمكن من المحاولة مجددًا.</p><button className="text-link" type="button" onClick={() => setRetry(r => r + 1)}><RotateCcw size={18}/>إعادة تحميل الأسماء</button></div>
+          : !invalidAge && status === 'ready' && !result?.items.length ? <div className="archive-feedback"><h3>لا توجد أسماء مطابقة</h3><p>جرّب جزءًا من الاسم، أو أزل العمر لتوسيع البحث.</p><button className="text-link" type="button" onClick={clear}>مسح المرشّحات</button></div>
+          : <div className="record-grid">{!invalidAge && result?.items.map(r => <button type="button" className="archive-record" key={r.id} aria-label={`عرض سجل ${r.ar_name || r.en_name}`} disabled={status === 'loading'} onClick={() => useParticleStore.setState({ selectedRecord: r })}>
+            <span className="record-card-meta"><span>{r.age === null ? 'العمر غير مسجّل' : r.age === 0 ? 'دون عام واحد' : `${number(r.age)} عامًا`}</span><bdi>{r.id.startsWith('derived-') ? 'بلا رقم مصدر' : r.id}</bdi></span>
+            <span className="record-card-name" dir={r.ar_name ? 'rtl' : 'ltr'} lang={r.ar_name ? 'ar' : 'en'}>{r.ar_name || r.en_name}</span>
+            {r.ar_name && r.en_name && <span className="record-card-english" lang="en" dir="ltr">{r.en_name}</span>}
+            <span className="record-card-open">قراءة السجل <ArrowLeft size={16} aria-hidden="true"/></span>
+          </button>)}</div>}
       </div>
-
-      <div className="archive-workspace">
-        {/* Curated Drawers (الأدراج الأرشيفية التوثيقية) */}
-        <div className="curated-drawers" aria-label="أدراج أرشيفية سريعة">
-          <span className="drawers-label">أدراج استحضار سريعة:</span>
-          <div className="drawers-chips">
-            {CURATED_DRAWS.map(draw => {
-              const active = kind === draw.kind && query === draw.query;
-              return (
-                <button
-                  key={draw.label}
-                  type="button"
-                  className={`drawer-chip ${active ? 'active' : ''}`}
-                  onClick={() => applyCurated(draw)}
-                >
-                  <span className="chip-icon">{draw.icon}</span>
-                  <span>{draw.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Master Console: Search Tabs + Inputs */}
-        <div className="archive-console-panel">
-          {/* Segmented Search Tabs */}
-          <div className="search-mode-tabs" role="tablist">
-            {SEARCH_TABS.map(tab => (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={kind === tab.id}
-                className={`tab-btn ${kind === tab.id ? 'active' : ''}`}
-                onClick={() => {
-                  setKind(tab.id);
-                  setQuery('');
-                  setDateTo('');
-                  setPage(1);
-                }}
-              >
-                <span className="tab-icon" aria-hidden="true">{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Search Input Bar */}
-          <div className="search-box-wrap">
-            <span className="search-box-icon" aria-hidden="true">{currentTab.icon}</span>
-            <input
-              id="name-query"
-              type={kind === 'age' ? 'number' : kind === 'date' ? 'date' : 'search'}
-              min={kind === 'age' ? 0 : undefined}
-              max={kind === 'age' ? 150 : undefined}
-              placeholder={currentTab.placeholder}
-              value={query}
-              onChange={e => changeQuery(e.target.value)}
-              autoComplete="off"
-              className="search-box-input"
-              aria-describedby="archive-status"
-            />
-            {query && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                aria-label="مسح البحث"
-                onClick={() => changeQuery('')}
-              >
-                ✕
-              </button>
-            )}
-            {kind === 'date' && (
-              <div className="date-to-wrap">
-                <label htmlFor="date-to">إلى تاريخ:</label>
-                <input
-                  id="date-to"
-                  type="date"
-                  value={dateTo}
-                  min={query || undefined}
-                  onChange={e => { setDateTo(e.target.value); setPage(1); }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Sort Toolbar & Algorithm Benchmark Chip */}
-          <div className="archive-toolbar-row">
-            <div className="sort-segment-group">
-              <span className="toolbar-label">ترتيب الأرشيف:</span>
-              <div className="sort-buttons">
-                <button
-                  type="button"
-                  className={`sort-pill ${sort === 'none' ? 'active' : ''}`}
-                  onClick={() => { setSort('none'); setQuery(''); setDateTo(''); setPage(1); setStatus('loading'); }}
-                >
-                  الترتيب الأصلي
-                </button>
-                <button
-                  type="button"
-                  className={`sort-pill ${sort === 'age' ? 'active' : ''}`}
-                  onClick={() => { setSort('age'); setQuery(''); setDateTo(''); setPage(1); setStatus('loading'); }}
-                >
-                  حسب العمر (Quick Sort)
-                </button>
-                <button
-                  type="button"
-                  className={`sort-pill ${sort === 'name' ? 'active' : ''}`}
-                  onClick={() => { setSort('name'); setQuery(''); setDateTo(''); setPage(1); setStatus('loading'); }}
-                >
-                  أبجدياً (Merge Sort)
-                </button>
-              </div>
-
-              {sort !== 'none' && (
-                <button
-                  type="button"
-                  className="sort-dir-toggle"
-                  onClick={() => { setAscending(!ascending); setPage(1); }}
-                  aria-label="عكس اتجاه الترتيب"
-                >
-                  <span>{ascending ? 'تصاعدي' : 'تنازلي'}</span>
-                  <span className="dir-arrow">{ascending ? '↑' : '↓'}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Algorithm Live Benchmark Indicator */}
-            {result?.algoBadge && (
-              <div className="algo-benchmark-badge" title="الخوارزمية وزمن التنفيذ">
-                <span className="algo-dot" aria-hidden="true" />
-                <span className="algo-text">{result.algoBadge}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Results Container with Tactile Archival Cards */}
-        <div className="results-sheet" aria-busy={status === 'loading'}>
-          <div className="results-header-bar">
-            <div className="results-count-title">
-              <span className="count-bullet" aria-hidden="true">❖</span>
-              <span id="archive-status" role="status">
-                {status === 'loading'
-                  ? 'جاري استدعاء السجلات من الأرشيف…'
-                  : status === 'error'
-                  ? 'تعذّر استرجاع الأسماء'
-                  : `${(result?.pagination.total ?? 0).toLocaleString('ar-EG')} اسمًا موثقًا${query ? ' يطابق البحث' : ''}`}
-              </span>
-            </div>
-            <span className="inspect-hint">انقر فوق أي بطاقة لعرض الوثيقة الكاملة ↗</span>
-          </div>
-
-          {status === 'error' ? (
-            <div className="feedback error">
-              لم نتمكن من الوصول للأرشيف. تأكد من تشغيل خادم البيانات.
-              <button className="text-link" onClick={() => setRetry(retry + 1)}>حاول مجددًا</button>
-            </div>
-          ) : status === 'ready' && result?.records.length === 0 ? (
-            <div className="archive-empty-state">
-              <span className="empty-seal">📜</span>
-              <h3>لم يُعثر على سجل مطابق</h3>
-              <p>بحثت الخوارزمية في 72,835 سجل ولم تجد نتيجة تطابق «{query}».</p>
-              <button className="text-link" onClick={() => changeQuery('')}>
-                العودة للأرشيف الكامل
-              </button>
-            </div>
-          ) : (
-            <div className="archive-cards-grid">
-              {status === 'loading'
-                ? Array.from({ length: 12 }).map((_, i) => (
-                    <div key={i} className="archive-card skeleton" aria-hidden="true">
-                      <div className="card-top-row">
-                        <div className="skeleton-pill short" />
-                        <div className="skeleton-pill mini" />
-                      </div>
-                      <div className="skeleton-title" />
-                      <div className="skeleton-subtitle" />
-                      <div className="card-bottom-row">
-                        <div className="skeleton-pill micro" />
-                      </div>
-                    </div>
-                  ))
-                : result?.records.map(r => {
-                    const isBaby = r.age === 0;
-                    const isChild = r.age !== null && r.age > 0 && r.age < 18;
-                    const isElder = r.age !== null && r.age >= 65;
-                    const ageLabel = isBaby
-                      ? '👶 رضيع (دون عام)'
-                      : isChild
-                      ? `🌱 طفل (${r.age} عامًا)`
-                      : isElder
-                      ? `🕊️ مسن (${r.age} عامًا)`
-                      : r.age !== null
-                      ? `${r.age} عامًا`
-                      : 'العمر غير مسجل';
-
-                    const birthYear = r.dob ? r.dob.slice(0, 4) : null;
-
-                    return (
-                      <article
-                        key={r.id}
-                        className="archive-card"
-                        tabIndex={0}
-                        role="button"
-                        onClick={() => useParticleStore.setState({ selectedRecord: r })}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            useParticleStore.setState({ selectedRecord: r });
-                          }
-                        }}
-                      >
-                        {/* Decorative parchment corners */}
-                        <div className="card-corner top-left" aria-hidden="true" />
-                        <div className="card-corner bottom-right" aria-hidden="true" />
-
-                        <div className="card-top-row">
-                          <span className={`card-age-tag ${isBaby ? 'baby' : isChild ? 'child' : isElder ? 'elder' : ''}`}>
-                            {ageLabel}
-                          </span>
-                          <span className="card-id-badge">#{r.id}</span>
-                        </div>
-
-                        <div className="card-body">
-                          <h3 className="card-name-ar">{r.ar_name || r.en_name}</h3>
-                          {r.en_name && <p className="card-name-en">{r.en_name}</p>}
-                        </div>
-
-                        <div className="card-bottom-row">
-                          <div className="card-meta-tags">
-                            {birthYear && <span className="meta-tag">مواليد {birthYear}</span>}
-                            {r.sex && <span className="meta-tag">{r.sex === 'f' ? 'أنثى' : 'ذكر'}</span>}
-                          </div>
-                          <span className="card-open-action">عرض الوثيقة ↗</span>
-                        </div>
-                      </article>
-                    );
-                  })}
-            </div>
-          )}
-
-          {/* Book-Style Archival Pagination */}
-          {status === 'ready' && result && result.pagination.total_pages > 1 && (
-            <nav className="archival-pagination" aria-label="صفحات الأرشيف">
-              <button
-                type="button"
-                className="pag-btn edge"
-                disabled={page <= 1}
-                onClick={() => setPage(1)}
-                title="الصفحة الأولى"
-              >
-                « الأولى
-              </button>
-              <button
-                type="button"
-                className="pag-btn"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
-                السابق
-              </button>
-
-              <div className="pag-indicator">
-                <span>دفتر الذاكرة:</span>
-                <strong>صفحة {page.toLocaleString('ar-EG')}</strong>
-                <span>من</span>
-                <span>{result.pagination.total_pages.toLocaleString('ar-EG')}</span>
-              </div>
-
-              <button
-                type="button"
-                className="pag-btn"
-                disabled={page >= result.pagination.total_pages}
-                onClick={() => setPage(page + 1)}
-              >
-                التالي
-              </button>
-              <button
-                type="button"
-                className="pag-btn edge"
-                disabled={page >= result.pagination.total_pages}
-                onClick={() => setPage(result.pagination.total_pages)}
-                title="الصفحة الأخيرة"
-              >
-                الأخيرة »
-              </button>
-            </nav>
-          )}
-
-          {status === 'ready' && result && (
-            <div className="archive-technical-bar">
-              <span className="tech-icon">⚙️</span>
-              <p className="technical-note" lang="ar">
-                {result.note} — تم استخراج السجلات مباشرة من الملف التوثيقي الأصلي دون وساطة طرف ثالث.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
+      {status === 'ready' && !invalidAge && result && result.total_pages > 1 && <nav className="archive-pagination" aria-label="صفحات الأسماء">
+        <button type="button" disabled={result.page <= 1} onClick={() => change({ page: result.page - 1 })}><ArrowRight size={18} aria-hidden="true"/>السابق</button><span>صفحة <bdi>{number(result.page)}</bdi> من <bdi>{number(result.total_pages)}</bdi></span><button type="button" disabled={result.page >= result.total_pages} onClick={() => change({ page: result.page + 1 })}>التالي<ArrowLeft size={18} aria-hidden="true"/></button>
+      </nav>}
+    </div>
+    <DatasetNote/>
+  </section>;
 }

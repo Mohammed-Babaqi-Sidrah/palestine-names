@@ -1,16 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  async rewrites() {
+    const backend = (process.env.API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    return [{ source: '/api/:path*', destination: `${backend}/api/:path*` }];
   },
   devIndicators: false,
   // Ensure Three.js and R3F work correctly with Next.js
-  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
-  // Allow WebGL in experimental features
-  experimental: {
-    optimizePackageImports: ['framer-motion', 'zustand'],
-  },
+  transpilePackages: ['three', '@react-three/fiber'],
 };
 
 export default nextConfig;

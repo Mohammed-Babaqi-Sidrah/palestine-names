@@ -40,10 +40,31 @@ export interface Statistics {
   min_age: number | null;
   max_age: number | null;
   children_under_18: number;
+  infants_under_1: number;
+  unknown_age: number;
+  cohorts: { id: string; range: string; count: number }[];
   male: number;
   female: number;
   age_distribution: AgeDistBucket[];
   records_by_year: YearBucket[];
+}
+
+export interface DatasetMetadata {
+  status: 'fresh' | 'stale' | 'fallback';
+  origin: 'upstream' | 'bundled';
+  record_count: number;
+  source_url: string;
+  source_docs: string;
+  source_revision: number | null;
+  source_last_modified: string | null;
+  checked_at: string | null;
+  refreshed_at: string | null;
+}
+
+export interface MemorialResponse {
+  statistics: Statistics;
+  dataset: DatasetMetadata;
+  records: Record[];
 }
 
 export interface AgeDistBucket {

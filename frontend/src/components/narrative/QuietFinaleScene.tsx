@@ -3,11 +3,11 @@ import { useParticleStore } from '@/lib/particleStore';
 
 export default function QuietFinaleScene() {
   const total = useParticleStore(s => s.total);
+  const calligraphy = useParticleStore(s => s.calligraphyReady && s.webglReady);
 
   return (
     <section id="finale" className="chapter finale" aria-labelledby="finale-title">
       <div className="finale-lead-block">
-        <span className="eyebrow">05 — ما يبقى</span>
         <p className="finale-verse">لم يكونوا أرقامًا.. كانوا حيواتٍ وأحلاماً.</p>
         <h2 id="finale-title">
           ولكل إنسان <em>اسمٌ وخلود.</em>
@@ -28,18 +28,18 @@ export default function QuietFinaleScene() {
       </blockquote>
 
       {/* Breathing space for the 3D Palestine calligraphy formed by the martyrs */}
-      <div className="finale-calligraphy-stage" aria-hidden="true" />
+      <div className="particle-stage finale-calligraphy-stage" data-particle-stage aria-hidden="true">{!calligraphy && <span className="stage-fallback">فلسطين</span>}</div>
 
       {/* Minimalist Pro Colophon Bar */}
       <footer className="archive-colophon" role="contentinfo">
         <div className="colophon-col colophon-identity">
           <div className="colophon-badge">
             <span className="live-dot" aria-hidden="true" />
-            <span>سِجل الذاكرة الوطنية المستقل</span>
+            <span>أرشيف تذكاري مستقل</span>
           </div>
           <strong className="colophon-brand">أسماء لا تُنسى</strong>
           <p className="colophon-sub">
-            {total !== null ? `${total.toLocaleString('ar-EG')} إنساناً موثقاً بالاسم والعمر.` : 'أرشيف تفاعلي تخليداً لأرواح شهداء فلسطين.'}
+            {total !== null ? `${total.toLocaleString('ar-u-nu-arab')} إنساناً موثقاً بالاسم.` : 'أرشيف تفاعلي تخليداً لأرواح شهداء فلسطين.'}
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 'use client';
-import { Component, type ReactNode, useEffect } from 'react';
+import { Component, type ReactNode, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import HumanInstancedMesh from './HumanInstancedMesh';
 import { useParticleStore } from '@/lib/particleStore';
@@ -13,21 +13,33 @@ export default function HumanParticleCanvas() {
   const record=useParticleStore(s=>s.hoveredRecord);
   const pos=useParticleStore(s=>s.hoveredScreenPos);
   const reduced=useParticleStore(s=>s.reducedMotion);
+  const records=useParticleStore(s=>s.records);
+  const visible=useParticleStore(s=>s.stageVisible);
+  const calligraphyReady=useParticleStore(s=>s.calligraphyReady);
+  const mode=useParticleStore(s=>s.mode);
+  const [supported] = useState(() => {
+    try {
+      const context = document.createElement('canvas').getContext('webgl2');
+      if (context) { context.getExtension('WEBGL_lose_context')?.loseContext(); return true; }
+    } catch { /* Core archive remains usable without WebGL. */ }
+    return false;
+  });
   useEffect(()=>{document.documentElement.dataset.reducedMotion=String(reduced);},[reduced]);
   return <>
-    <div id="human-particle-canvas" aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none'}}>
-      <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}} onCreated={({gl})=>{
+    <div id="human-particle-canvas" aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
+      {supported && records.length > 0 && <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}} onCreated={({gl})=>{
         useParticleStore.setState({webglReady:true});
         gl.domElement.addEventListener('webglcontextlost',()=>useParticleStore.setState({webglReady:false}));
-      }} fallback={null}><HumanInstancedMesh /></Canvas></CanvasBoundary>
+        gl.domElement.addEventListener('webglcontextrestored',()=>useParticleStore.setState({webglReady:true}));
+      }} fallback={null}><HumanInstancedMesh /></Canvas></CanvasBoundary>}
     </div>
     <div className="canvas-scrim" aria-hidden="true" />
     {record && pos && pos.x > 0 && pos.y > 0 && (
       <aside
         className="particle-memorial-pill"
         style={{
-          left: `${pos.x}px`,
-          top: `${pos.y - 14}px`,
+          left: `${Math.max(156, Math.min(window.innerWidth - 156, pos.x))}px`,
+          top: `${Math.max(150, pos.y - 14)}px`,
         }}
         aria-live="polite"
       >
