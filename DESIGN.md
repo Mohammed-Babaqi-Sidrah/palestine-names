@@ -27,8 +27,11 @@ spacing:
   medium: "24px"
   large: "64px"
 components:
-  record: { rounded: "{rounded.DEFAULT}", background: "{colors.paper}" }
-  button: { height: "44px", color: "{colors.olive}" }
+  record: { rounded: "{rounded.DEFAULT}", backgroundColor: "{colors.paper}" }
+  button: { height: "44px", textColor: "{colors.olive}" }
+  note: { textColor: "{colors.muted}" }
+  error: { textColor: "{colors.danger}" }
+  divider: { height: "1px", backgroundColor: "{colors.border}" }
 ---
 
 # أسماء لا تُنسى
