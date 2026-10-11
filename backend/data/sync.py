@@ -22,14 +22,14 @@ MAX_BYTES = 25 * 1024 * 1024
 
 
 def parse_csv(text: str) -> list[dict]:
-    reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff')))
+    reader = csv.DictReader(io.StringIO(text.lstrip('\ufeff')), strict=True)
     columns = set(reader.fieldnames or [])
-    if not {'id', 'age', 'dob', 'sex', 'update'}.issubset(columns) or not ({'ar_name', 'name'} & columns):
+    if len(columns) != len(reader.fieldnames or []) or not {'id', 'age', 'dob', 'sex', 'update'}.issubset(columns) or not ({'ar_name', 'name'} & columns):
         raise ValueError('Unexpected names-list schema')
     records, ids = [], set()
     for row in reader:
-        if None in row:
-            raise ValueError('Unexpected extra CSV fields')
+        if None in row or any(value is None for value in row.values()):
+            raise ValueError('Unexpected or incomplete CSV fields')
         def field(key):
             return (row.get(key) or '').strip()
         ar_name, en_name = field('ar_name') or field('name'), field('en_name')

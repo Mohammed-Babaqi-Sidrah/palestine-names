@@ -6,6 +6,7 @@ import os
 import json
 import time
 from pathlib import Path
+from contextvars import ContextVar
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
@@ -16,6 +17,7 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 from data.loader import get_records
+from routers.records import compute_statistics
 from algorithms.search import linear_search_by_name, binary_search_by_age, linear_search_by_date
 from algorithms.sort import merge_sort_by_name, quick_sort_by_age
 
@@ -35,7 +37,7 @@ FREE_MODELS = [
     "openrouter/auto"
 ]
 
-SYSTEM_PROMPT = """أنت «حارس الأرشيف» في مشروع توثيقي تذكاري يحفظ أسماء الضحايا الفلسطينيين (أكثر من 72 ألف سجل).
+SYSTEM_PROMPT = """أنت «حارس الأرشيف» في مشروع توثيقي تذكاري يحفظ أسماء الضحايا الفلسطينيين.
 مهمتك: الإجابة بوقار، دقة، وتوثيق إنساني حقيقي مستند للأرشيف.
 قواعد صارمة:
 1. أنت لا تؤلف ولا تخترع أسماء أو أرقاماً أبداً.
@@ -44,9 +46,16 @@ SYSTEM_PROMPT = """أنت «حارس الأرشيف» في مشروع توثيق
 4. عند ذكر الأشخاص، اذكر أسماءهم وأعمارهم بوضوح، مع احترام كامل لكرامة الذاكرة.
 """
 
-# Global tracking for collected records during tool executions in a request
-_request_records: List[Dict[str, Any]] = []
-_request_tool_logs: List[Dict[str, Any]] = []
+# Each async request owns its tool results, including across model awaits.
+_request_tracking = ContextVar('archive_request_tracking', default=None)
+
+
+def _tracking():
+    state = _request_tracking.get()
+    if state is None:
+        state = ([], [])
+        _request_tracking.set(state)
+    return state
 
 
 # ─── LangChain Tools ───────────────────────────────────────────────────────────
@@ -64,8 +73,8 @@ def search_by_name(query: str, limit: int = 8) -> str:
         {"id": r["id"], "ar_name": r.get("ar_name"), "en_name": r.get("en_name"), "age": r.get("age"), "dob": r.get("dob")}
         for r in items
     ]
-    _request_records.extend(sample)
-    _request_tool_logs.append({
+    _tracking()[0].extend(sample)
+    _tracking()[1].append({
         "tool": "search_by_name",
         "algorithm": "Linear Search",
         "complexity": "O(n)",
@@ -95,8 +104,8 @@ def search_by_age(age: int, tolerance: int = 0, limit: int = 8) -> str:
         {"id": r["id"], "ar_name": r.get("ar_name"), "en_name": r.get("en_name"), "age": r.get("age")}
         for r in items
     ]
-    _request_records.extend(sample)
-    _request_tool_logs.append({
+    _tracking()[0].extend(sample)
+    _tracking()[1].append({
         "tool": "search_by_age",
         "algorithm": "Binary Search",
         "complexity": "O(log n)",
@@ -126,8 +135,8 @@ def sort_by_age(ascending: bool = True, limit: int = 8) -> str:
         {"id": r["id"], "ar_name": r.get("ar_name"), "en_name": r.get("en_name"), "age": r.get("age")}
         for r in items
     ]
-    _request_records.extend(sample)
-    _request_tool_logs.append({
+    _tracking()[0].extend(sample)
+    _tracking()[1].append({
         "tool": "sort_by_age",
         "algorithm": "Quick Sort",
         "complexity": "O(n log n) avg",
@@ -158,8 +167,8 @@ def sort_by_name(ascending: bool = True, limit: int = 8) -> str:
         {"id": r["id"], "ar_name": r.get("ar_name"), "en_name": r.get("en_name"), "age": r.get("age")}
         for r in items
     ]
-    _request_records.extend(sample)
-    _request_tool_logs.append({
+    _tracking()[0].extend(sample)
+    _tracking()[1].append({
         "tool": "sort_by_name",
         "algorithm": "Merge Sort",
         "complexity": "O(n log n)",
@@ -186,11 +195,11 @@ def get_archive_statistics() -> str:
     ages.sort()
     n_ages = len(ages)
     avg = round(sum(ages) / n_ages, 1) if n_ages else None
-    median = ages[n_ages // 2] if n_ages else None
+    median = compute_statistics(records)['median_age']
     children = sum(1 for a in ages if a < 18)
     elapsed = round((time.perf_counter() - started) * 1000, 2)
 
-    _request_tool_logs.append({
+    _tracking()[1].append({
         "tool": "get_archive_statistics",
         "algorithm": "Demographic Aggregate Scan",
         "complexity": "O(n)",
@@ -250,9 +259,7 @@ async def chat_with_archivist_langchain(body: AgentQuery):
     """
     LangChain AI Agent with OpenRouter and algorithmic tool calling.
     """
-    global _request_records, _request_tool_logs
-    _request_records = []
-    _request_tool_logs = []
+    _request_tracking.set(([], []))
 
     user_msg = body.message.strip()
     if not user_msg:
@@ -353,13 +360,13 @@ async def chat_with_archivist_langchain(body: AgentQuery):
             execution_time_ms=t.get("execution_time_ms"),
             arguments=t.get("arguments", {})
         )
-        for t in _request_tool_logs
+        for t in _tracking()[1]
     ]
 
     return AgentResponse(
         answer=str(final_answer),
         model=chosen_model,
         tools_used=tool_logs,
-        records=_request_records,
+        records=_tracking()[0],
         fallback_used=("fallback" in chosen_model)
     )

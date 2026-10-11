@@ -1,3 +1,4 @@
+import csv
 import json
 import tempfile
 import unittest
@@ -42,6 +43,15 @@ class DatasetTests(unittest.TestCase):
         self.refresh()
         self.assertEqual(loader.get_dataset_metadata()['refreshed_at'], previous)
 
+    def test_source_removals_and_corrections_replace_disk_and_api_records(self):
+        from routers.records import list_records
+        self.refresh()
+        self.refresh(CSV.splitlines()[0] + '\n2,Ali,علي,25,,m,7\n')
+        self.assertEqual([r['id'] for r in loader.get_records()], ['2'])
+        self.assertEqual(loader.get_records()[0]['age'], 25)
+        self.assertEqual(json.loads(self.cache.read_text(encoding='utf-8'))['metadata']['source_revision'], 7)
+        self.assertEqual(list_records(page=1, page_size=12, q='', age=None, sort='source', ascending=True)['total'], 1)
+
     def test_invalid_or_failed_download_preserves_last_good_bytes(self):
         self.refresh()
         previous = self.cache.read_bytes()
@@ -63,6 +73,24 @@ class DatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]['id'], parse_csv(CSV.replace('1,Amal', ',Amal'))[0]['id'])
         self.assertIsNone(rows[1]['age'])
 
+    def test_truncated_row_is_rejected_instead_of_publishing_partial_data(self):
+        with self.assertRaises(ValueError):
+            parse_csv(CSV + '3,Test,سليم')
+
+    def test_broken_quoting_and_duplicate_headers_preserve_good_snapshot(self):
+        self.refresh()
+        previous = self.cache.read_bytes()
+        malformed = [
+            CSV.splitlines()[0] + '\n1,Amal,أمل,0,2024-01-01,f,"10',
+            CSV.replace('Amal', '"Amal"garbage'),
+            CSV.replace('age,dob', 'age,age,dob').replace(',0,2024', ',0,45,2024').replace(',24,,', ',24,45,,'),
+        ]
+        for payload in malformed:
+            with self.subTest(payload=payload), patch('data.sync.download_csv', return_value=(payload.encode(), None)):
+                with self.assertRaises((ValueError, csv.Error)):
+                    refresh_dataset()
+                self.assertEqual(self.cache.read_bytes(), previous)
+
     def test_atomic_failure_preserves_snapshot(self):
         self.refresh()
         previous = self.cache.read_bytes()
@@ -71,6 +99,20 @@ class DatasetTests(unittest.TestCase):
                 self.refresh(CSV.replace(',24,', ',25,'))
         self.assertEqual(self.cache.read_bytes(), previous)
         self.assertEqual(list(self.cache.parent.glob('*.tmp')), [])
+
+    def test_corrupt_cache_keeps_running_snapshot_and_boots_from_bundled_data(self):
+        self.refresh()
+        self.assertEqual(loader.get_records()[0]['ar_name'], 'أمل')
+        previous = self.cache.read_text(encoding='utf-8')
+        corrupt = json.loads(previous)
+        corrupt['metadata']['checked_at'] = 'not-a-date'
+        self.cache.write_text(json.dumps(corrupt), encoding='utf-8')
+        self.assertEqual(loader.get_records()[0]['ar_name'], 'أمل')
+        self.assertEqual(loader.get_dataset_metadata()['status'], 'stale')
+        loader.reset_cache()
+        with patch.object(loader, 'DATA_PATH', Path(self.tmp.name) / 'bundled.csv'):
+            loader.DATA_PATH.write_text(CSV, encoding='utf-8')
+            self.assertEqual(loader.get_dataset_metadata()['status'], 'fallback')
 
 
 if __name__ == '__main__':

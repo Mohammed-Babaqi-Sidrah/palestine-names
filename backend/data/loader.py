@@ -2,9 +2,13 @@
 import json
 import os
 import threading
+from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT / 'backend/.env')
+load_dotenv(ROOT / '.env')
 DATA_PATH = ROOT / 'killed-in-gaza.csv'
 CACHE_PATH = Path(os.environ.get('DATA_CACHE_PATH', ROOT / 'backend/.cache/names.json'))
 SOURCE_URL = 'https://data.techforpalestine.org/api/v3/killed-in-gaza.csv'
@@ -37,13 +41,21 @@ def get_snapshot() -> dict:
             if signature is not None:
                 try:
                     candidate = json.loads(CACHE_PATH.read_text(encoding='utf-8'))
-                    if not candidate['records'] or candidate['metadata']['record_count'] != len(candidate['records']):
+                    records, metadata = candidate['records'], candidate['metadata']
+                    if not isinstance(records, list) or not records or metadata['record_count'] != len(records) or metadata['origin'] != 'upstream':
+                        raise ValueError('Invalid cached snapshot')
+                    checked = datetime.fromisoformat(metadata['checked_at'])
+                    if checked.tzinfo is None or not all(isinstance(r, dict) and {'id', 'ar_name', 'en_name', 'age', 'dob', 'sex', 'update'} <= r.keys() for r in records):
                         raise ValueError('Invalid cached snapshot')
                 except (OSError, ValueError, KeyError, TypeError):
                     candidate = None
+                    note_refresh_failure()
             else:
                 candidate = None
             if candidate is None:
+                if _snapshot is not None:
+                    _signature = signature
+                    return _snapshot
                 records = parse_csv(DATA_PATH.read_text(encoding='utf-8-sig'))
                 candidate = {'records': records, 'metadata': {
                     'record_count': len(records), 'source_url': SOURCE_URL,
