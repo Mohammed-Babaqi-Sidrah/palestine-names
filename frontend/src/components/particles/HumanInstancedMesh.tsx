@@ -308,7 +308,7 @@ export default function HumanInstancedMesh() {
   },[targets,reduced,invalidate]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
+    if(s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
   }),[invalidate]);
 
   useEffect(() => {
@@ -343,8 +343,8 @@ export default function HumanInstancedMesh() {
       if(!['number','scatter','stats','finale'].includes(useParticleStore.getState().mode)) return;
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
-        const dx=current.current[i*4]/viewport.width*size.width + stage.stageX-event.clientX;
-        const dy=stage.stageY-current.current[i*4+1]/viewport.height*size.height-event.clientY;
+        const dx=current.current[i*4]/viewport.width*size.width + size.width/2-event.clientX;
+        const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-event.clientY;
         const d=dx*dx+dy*dy;
         if(d<distance) { distance=d; index=i; }
       }
@@ -374,7 +374,7 @@ export default function HumanInstancedMesh() {
 
   useEffect(() => () => { geometry.dispose(); material.dispose(); },[geometry,material]);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
     if (!pState.stageVisible || document.hidden) return;
@@ -382,15 +382,14 @@ export default function HumanInstancedMesh() {
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
     let unsettled=false;
-    const time = state.clock.getElapsedTime();
 
     // Enable hover picking in number, scatter, stats (tree), and finale (calligraphy)
     const pickable = ['number','scatter','stats','finale'].includes(mode) && !pState.selectedRecord;
     let pick=-1, distance=140;
 
     if(pickable) for(let i=0;i<count;i++) {
-      const dx=current.current[i*4]/viewport.width*size.width + pState.stageX-pointer.current.x;
-      const dy=pState.stageY-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
+      const dx=current.current[i*4]/viewport.width*size.width + size.width/2-pointer.current.x;
+      const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
       const d=dx*dx+dy*dy;
       if(d<distance) {distance=d;pick=i;}
     }
@@ -406,21 +405,9 @@ export default function HumanInstancedMesh() {
 for(let i=0;i<count;i++) {
       let tx=targets[i*4], ty=targets[i*4+1], tz=targets[i*4+2], ts=targets[i*4+3];
 
-// Mode-specific organic fluid motions
-      if(!reduced && mode === 'finale') {
-        // Living constellation breathing in the calligraphy of Palestine
-        tx += Math.sin(time * 0.65 + i * 0.15) * (w * 0.0015);
-        ty += Math.cos(time * 0.8 + i * 0.2) * (h * 0.0015);
-        unsettled = true;
-      } else if(!reduced && mode === 'stats') {
-        // Gentle Mediterranean breeze in the Olive Tree canopy
-        const ratio = i / Math.max(count, 1);
-        if (ratio >= 0.6) {
-          tx += Math.sin(time * 0.7 + i * 0.2) * (w * 0.002);
-          ty += Math.cos(time * 0.9 + i * 0.3) * (h * 0.002);
-          unsettled = true;
-        }
-      }
+      // Interpolate in world space, including the anchor, to avoid chapter jumps.
+      tx += offsetX;
+      ty += offsetY;
 
       // Hover feedback: smooth elevation and scale
       if(i===pick) {
@@ -435,7 +422,7 @@ for(let i=0;i<count;i++) {
         current.current[index]+=diff*factor;
       }
 
-      dummy.position.set(current.current[i*4] + offsetX,current.current[i*4+1] + offsetY,current.current[i*4+2]);
+      dummy.position.set(current.current[i*4],current.current[i*4+1],current.current[i*4+2]);
       dummy.scale.setScalar(Math.max(.001,current.current[i*4+3]));
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i,dummy.matrix);

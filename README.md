@@ -71,13 +71,13 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Playwright covers desktop and mobile layouts, search/filter/order/pagination, history, no results, retry, stale requests, optional assistant failure, native dialog focus, reduced motion, manual pause and WebGL fallback. It mocks API responses so tests do not require the live source or an AI key. GitHub Actions runs backend and frontend checks on pull requests.
+Playwright covers desktop and mobile layouts, search/filter/order/pagination, history, no results, retry, stale requests, optional assistant failure, native dialog focus, automatic reduced motion, persistent viewport formations, safe Arabic Markdown and WebGL fallback. It mocks API responses so tests do not require the live source or an AI key. GitHub Actions runs backend and frontend checks on pull requests.
 
 ## Design and accessibility
 
 [DESIGN.md](DESIGN.md) records the parchment/olive/ink system and [UX-CONTRACT.md](UX-CONTRACT.md) records interaction ownership. Amiri and IBM Plex Sans Arabic are served locally. Whole Arabic words retain shaping; identifiers and Latin names use bidi isolation. Canvas calligraphy waits for the actual font and has an HTML fallback.
 
-Scrolling remains native. One scheduled observer aligns formations with reserved stages rather than placing them over prose. OS reduced motion is respected, and a manual pause persists across reloads. Without WebGL, the count, narrative and complete searchable archive remain available. Record details use a native dialog with Escape and focus restoration.
+Scrolling remains native. One scheduled observer changes viewport-fixed formations as chapters scroll past. Shapes and their anchors interpolate together, and rendering stops when settled. OS reduced motion is respected automatically; there is no manual motion control. The Arabic assistant retains one question form and renders Markdown lists, tables, emphasis and safe links. Without WebGL, the count, narrative and complete searchable archive remain available. Record details use a native dialog with Escape and focus restoration.
 
 ## Structure
 

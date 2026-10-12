@@ -24,16 +24,25 @@ export function useScrollStory() {
       }
       const section = document.getElementById(active.id);
       const rect = section?.getBoundingClientRect();
-      const stage = section?.querySelector('[data-particle-stage]')?.getBoundingClientRect();
+      // Formations share the viewport, so the same people accompany the reader.
+      const vw = window.innerWidth;
+      const mobile = vw < 760;
+      let x = .5, y = .5, width = 1, height = .8;
+      if (active.mode === 'scatter') {
+        x = mobile ? .5 : .37; y = .53; width = mobile ? .9 : .58; height = .84;
+      } else if (active.mode === 'stats') {
+        x = mobile ? .5 : .27; y = .53; width = mobile ? .9 : .55; height = .88;
+      } else if (active.mode === 'finale') {
+        y = .76; height = .5;
+      }
       const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * .3))) : 0;
-      const height = Math.max(1, document.documentElement.scrollHeight - vh);
+      const scrollHeight = Math.max(1, document.documentElement.scrollHeight - vh);
       useParticleStore.setState({
         mode: active.mode, chapterProgress: progress,
-        scrollProgress: Math.max(0, Math.min(1, window.scrollY / height)),
-        stageWidth: stage?.width || 0, stageHeight: stage?.height || 0,
-        stageX: stage ? stage.left + stage.width / 2 : window.innerWidth / 2,
-        stageY: stage ? stage.top + stage.height / 2 : vh / 2,
-        stageVisible: Boolean(stage && stage.bottom > 88 && stage.top < vh),
+        scrollProgress: Math.max(0, Math.min(1, window.scrollY / scrollHeight)),
+        stageWidth: vw * width, stageHeight: vh * height,
+        stageX: vw * x, stageY: vh * y,
+        stageVisible: true,
       });
     };
     const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(sync); };

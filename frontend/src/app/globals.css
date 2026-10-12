@@ -1079,6 +1079,61 @@ h1, h2, h3, .eyebrow, .folio-label, .folio-form-tag, .folio-privacy-note,
 .calligraphy-fallback { font: 700 clamp(60px, 10vw, 150px)/1.6 var(--font-poetry); color: var(--accent-green); }
 .record-dialog h2, .record-dialog article, .agent-prose { overflow-wrap: anywhere; }
 .agent-prose { white-space: pre-wrap; }
+
+/* A quiet Arabic writing desk, within the original parchment folio. */
+.archive-desk { grid-template-columns: 260px minmax(0, 1fr); position: relative; z-index: 2; }
+.archive-desk .folio-dossier-col { align-items: center; text-align: center; padding: 30px 24px; gap: 20px; }
+.archive-desk .dossier-seal-showcase { padding: 0; }
+.archive-desk .archival-seal-wrap:hover { transform: none; }
+.archive-desk .seal-svg-text-primary { font: 700 13px var(--font-poetry); letter-spacing: 0; }
+.archive-desk .seal-svg-text-secondary { font: 12px var(--font-poetry); letter-spacing: 0; }
+.archive-desk .seal-center-title { font-size: 27px; }
+.archive-desk .seal-center-sub { font: 12px var(--font-poetry); letter-spacing: 0; }
+.archive-desk-identity h3 { font: 700 28px/1.5 var(--font-poetry); margin: 0 0 8px; }
+.archive-desk-identity p { font: 18px/1.9 var(--font-poetry); margin: 0; color: var(--text-secondary); }
+.archive-desk-source { border-top: 1px solid var(--border-paper); width: 100%; padding-top: 18px; margin-top: auto; font-size: 12px; color: var(--text-secondary); }
+.archive-desk-source p { margin: 0 0 6px; }
+.archive-desk-source a { color: var(--accent-green); text-decoration: underline; text-underline-offset: 4px; }
+.archive-desk .folio-desk-col { padding: 32px; justify-content: flex-start; gap: 20px; }
+.archive-desk .folio-label { font-size: 24px; }
+.archive-desk .folio-textarea-wrap textarea { resize: none; min-height: 110px; }
+.archive-desk .folio-textarea-wrap textarea::placeholder { color: var(--text-muted); }
+.archive-desk-hint { font: 12px/1.9 var(--font-arabic); color: var(--text-secondary); margin: -4px 0 0; }
+.archive-desk .folio-send-btn { min-height: 44px; box-shadow: none; }
+.archive-desk .folio-privacy-note { margin: 0; font: 12px/1.9 var(--font-arabic); }
+.archive-desk-answer:empty { display: none; }
+.archive-desk-answer { min-width: 0; border-top: 1px solid var(--border-paper); padding-top: 20px; }
+.archive-desk .dialogue-user-query { margin: 0 0 18px; padding: 0; border: 0; background: transparent; }
+.archive-desk .dialogue-user-query p { font: 16px/1.9 var(--font-arabic); margin: 6px 0; }
+.archive-working { font: 15px/1.9 var(--font-arabic); color: var(--text-secondary); }
+.archive-desk .agent-prose { font: 16px/2 var(--font-arabic); white-space: normal; margin: 0; overflow-wrap: anywhere; }
+.archive-desk .agent-prose p { margin: 0 0 16px; }
+.archive-desk .agent-prose :is(h3, h4, h5, h6) { font: 700 25px/1.6 var(--font-poetry); margin: 22px 0 10px; }
+.archive-desk .agent-prose > :first-child { margin-top: 0; }
+.archive-desk .agent-prose :is(ul, ol) { padding-inline-start: 24px; margin: 0 0 16px; }
+.archive-desk .agent-prose a { color: var(--accent-green); text-decoration: underline; text-underline-offset: 4px; }
+.archive-desk .agent-prose blockquote { border-inline-start: 2px solid var(--accent-green); margin: 16px 0; padding-inline-start: 16px; color: var(--text-secondary); }
+.archive-desk .agent-prose code { font: 13px/1.8 var(--font-mono); unicode-bidi: isolate; background: var(--bg-surface); padding: 2px 4px; }
+.archive-desk .agent-prose pre { max-width: 100%; overflow: auto; padding: 16px; background: var(--bg-surface); text-align: left; }
+.archive-desk .agent-prose pre code { padding: 0; white-space: pre; }
+.agent-table-scroll { max-width: 100%; overflow: auto; margin: 16px 0; }
+.agent-table-scroll table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.agent-table-scroll :is(th, td) { padding: 8px 12px; text-align: start; border-bottom: 1px solid var(--border-paper); }
+.agent-table-scroll th { background: var(--bg-surface); font-weight: 600; }
+.archive-desk .agent-records-tray { margin-top: 24px; }
+.archive-desk .tray-record-btn span { font: 12px/1.8 var(--font-arabic); }
+.archive-desk .agent-mode-note { font: 12px/1.9 var(--font-arabic); margin: 20px 0 0; }
+@media (max-width: 760px) {
+  .archive-desk { grid-template-columns: minmax(0, 1fr); }
+  .archive-desk .folio-dossier-col { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; padding: 20px; text-align: start; }
+  .archive-desk .archival-seal-wrap, .archive-desk .archival-seal-svg { width: 88px !important; height: 88px !important; }
+  .archive-desk-identity h3 { font-size: 24px; margin-bottom: 2px; }
+  .archive-desk-identity p { font-size: 16px; line-height: 1.7; }
+  .archive-desk-source { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; }
+  .archive-desk-source p { margin: 0; }
+  .archive-desk .folio-desk-col { padding: 24px 20px; }
+  .archive-desk .folio-send-btn { width: 100%; justify-content: space-between; }
+}
 .particle-memorial-pill { z-index: 20; max-width: min(300px, calc(100vw - 32px)); white-space: normal; overflow-wrap: anywhere; }
 .folio-form-header, .dossier-ref-row { flex-wrap: wrap; }
 .folio-desk-col, .dialogue-followup-form input { min-width: 0; }

@@ -69,7 +69,7 @@ test('failed archive request retries and old queries do not win', async ({ page 
   await expect(page.getByText('لا توجد أسماء مطابقة')).toBeVisible();
 });
 
-test('reduced motion, pause persistence and WebGL fallback', async ({ page }) => {
+test('automatic reduced motion and WebGL fallback without a motion control', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
@@ -81,11 +81,48 @@ test('reduced motion, pause persistence and WebGL fallback', async ({ page }) =>
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
   await expect(page.locator('.opening-count')).toBeVisible();
-  await page.getByRole('button', { name: 'تشغيل الحركة' }).click();
-  await page.getByRole('button', { name: 'إيقاف الحركة' }).click();
-  await page.reload();
-  await expect(page.getByRole('button', { name: 'تشغيل الحركة' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /تشغيل الحركة|إيقاف الحركة/ })).toHaveCount(0);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'false');
   await expect(page.getByRole('link', { name: 'البحث في السجلات' })).toBeAttached();
+});
+
+test('mesh stays in the viewport while scrolling and changes formation', async ({ page }) => {
+  await page.goto('/');
+  const mesh = page.locator('#human-particle-canvas');
+  await expect(mesh).toHaveAttribute('data-scene', 'number');
+  const center = await mesh.getAttribute('data-center-y');
+  await page.evaluate(() => window.scrollTo({ top: 180, behavior: 'instant' }));
+  await expect(mesh).toHaveAttribute('data-center-y', center!);
+  await expect(mesh).toHaveCSS('opacity', '1');
+  await page.locator('#crowd').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
+  await expect(mesh).toHaveAttribute('data-scene', 'scatter');
+  await expect(mesh).toHaveCSS('opacity', '1');
+  const crowdCenter = await mesh.getAttribute('data-center-y');
+  await page.evaluate(() => window.scrollBy({ top: 250, behavior: 'instant' }));
+  await expect(mesh).toHaveAttribute('data-center-y', crowdCenter!);
+  await page.locator('#stats').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
+  await expect(mesh).toHaveAttribute('data-scene', 'stats');
+  await expect(mesh).toHaveCSS('opacity', '1');
+});
+
+test('assistant renders Arabic Markdown and rejects executable content', async ({ page }) => {
+  await page.route('**/api/agent/chat', route => route.fulfill({ json: {
+    answer: '## أسماء في الذاكرة\n\n**أمل** تبقى في السجل.\n\n- اسم واحد\n- حياة كاملة\n\n| الاسم | العمر |\n| --- | --- |\n| أمل | 0 |\n\n[المصدر](https://data.techforpalestine.org/docs/killed-in-gaza/)\n\n[رابط غير آمن](javascript:alert(1))\n\n<script>window.markdownExecuted = true</script>',
+    model: 'test', records: [record], tools_used: [], fallback_used: false,
+  } }));
+  await page.goto('/#archivist');
+  await page.getByRole('textbox', { name: /سؤالك/ }).fill('ابحث عن أمل');
+  await page.getByRole('button', { name: 'اسأل حارس الأرشيف', exact: true }).click();
+  const prose = page.locator('.agent-prose');
+  await expect(prose.getByRole('heading', { name: 'أسماء في الذاكرة' })).toBeVisible();
+  await expect(prose.locator('strong')).toHaveText('أمل');
+  await expect(prose.getByRole('listitem')).toHaveCount(2);
+  await expect(prose.getByRole('table')).toBeVisible();
+  await expect(prose.getByRole('link', { name: 'المصدر', exact: true })).toHaveAttribute('rel', /noopener/);
+  await expect(prose.locator('a[href^="javascript:"]')).toHaveCount(0);
+  await expect(prose.locator('script')).toHaveCount(0);
+  expect(await page.evaluate(() => 'markdownExecuted' in window)).toBe(false);
 });
 
 test('URL filters, native sorting, paging and browser history', async ({ page }) => {
@@ -115,9 +152,9 @@ test('optional assistant retains a failed question and retries', async ({ page }
     ? route.fulfill({ status: 503, body: 'unavailable' })
     : route.fulfill({ json: { answer: 'نتائج من الأرشيف', model: 'local-algorithmic-fallback', records: [record], tools_used: [], fallback_used: true } }));
   await page.goto('/#archivist');
-  const question = page.getByRole('textbox', { name: /ماذا تريد أن تستحضر/ });
+  const question = page.getByRole('textbox', { name: /سؤالك/ });
   await question.fill('ابحث عن أمل');
-  await page.getByRole('button', { name: /استنطاق السجل الأرشيفي/ }).click();
+  await page.getByRole('button', { name: 'اسأل حارس الأرشيف', exact: true }).click();
   await expect(page.locator('.dialogue-user-query')).toContainText('ابحث عن أمل');
   await expect(page.getByRole('button', { name: /إعادة المحاولة/ })).toBeVisible();
   fail = false;

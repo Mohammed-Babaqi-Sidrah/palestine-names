@@ -7,11 +7,7 @@ export function useMemorialData() {
   useEffect(() => {
     let alive = true;
     const media = matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => {
-      let preference: string | null = null;
-      try { preference = localStorage.getItem('memorial-motion-paused'); } catch { /* OS preference remains usable. */ }
-      useParticleStore.setState({ reducedMotion: preference === null ? media.matches : preference === 'true' });
-    };
+    const update = () => useParticleStore.setState({ reducedMotion: media.matches });
     update();
     media.addEventListener('change', update);
     const controller = new AbortController();

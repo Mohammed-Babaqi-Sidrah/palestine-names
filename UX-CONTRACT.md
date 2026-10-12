@@ -13,6 +13,6 @@ The home route preserves the original six chapters. Search is reached through th
 | Record details | RecordDialog | Source record | Archive, spotlight, assistant | Native dialog Escape and focus placement/restoration; no hover required. |
 | Dataset status | DatasetNote | Dataset API metadata | Fresh, stale, bundled | Successful check differs from new names; unknown provenance dates stay unknown. |
 | Async resilience | api.ts | AbortSignal and current request | Retry and cancel | Timeout/cancel; old responses cannot overwrite filters; assistant failure preserves question. |
-| Motion | Navbar / useScrollStory | Particle store and OS preference | Running, paused, reduced | Persist manual pause; one scroll observer; explicit stages; natural scrolling. |
+| Motion | Navbar / useScrollStory | Particle store and OS preference | Morphing, settled, reduced | OS preference; one scroll observer; stable viewport anchors; no idle loop or manual pause; natural scrolling. |
 
 Table Selection, CRUD and Toast are not applicable: the public archive is read-only. Search dates remain available via the API; this surface offers name and exact-age filters, so no calendar is needed. Rendering silhouettes uses a labeled sample, with complete paginated records as the accessible equivalent.

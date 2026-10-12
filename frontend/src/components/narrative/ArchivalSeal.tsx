@@ -17,7 +17,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
     <div
       className={`archival-seal-wrap ${className}`}
       style={{ width: size, height: size }}
-      role="img" aria-label="شارة سِجل الذاكرة الوطنية"
+      role="img" aria-label="ختم حارس الأرشيف — أسماء لا تُنسى"
     >
       <svg
         viewBox="0 0 200 200"
@@ -36,7 +36,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
           />
           <path
             id={id + "-bottom"}
-            d="M 172 100 A 72 72 0 0 1 28 100"
+            d="M 28 100 A 72 72 0 0 0 172 100"
             fill="none"
           />
           <path
@@ -79,18 +79,18 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
             startOffset="50%"
             textAnchor="middle"
           >
-            سِجلُّ الذَّاكِرَةِ الوَطَنِيَّةِ الفِلَسْطِينِيَّة
+            أسماء لا تُنسى
           </textPath>
         </text>
 
         {/* Bottom Arc Typography: Archival Foundation & Scope */}
-        <text className="seal-svg-text-secondary" fill="#436148">
+        <text direction="rtl" className="seal-svg-text-secondary" fill="#436148">
           <textPath
             href={"#" + id + "-bottom"}
             startOffset="50%"
             textAnchor="middle"
           >
-            DOCUMENTED HERITAGE · 1948–2026
+            حارس الأرشيف
           </textPath>
         </text>
 
@@ -140,7 +140,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
           direction="rtl" className="seal-center-sub"
           fill="#436148"
         >
-          سِجِلُّ الخُلُود
+          ذاكرة حيّة
         </text>
 
         {/* Fine Underline and Archival Dot */}

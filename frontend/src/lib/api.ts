@@ -67,12 +67,12 @@ export const api = {
 
   // ─── AI Agent (Archivist) ──────────────────────────────────
 
-  chatWithArchivist: (message: string, model?: string) =>
+  chatWithArchivist: (message: string, model?: string, signal?: AbortSignal) =>
     fetch(`${API_BASE}/agent/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, model }),
-      signal: AbortSignal.timeout(90000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(90000)]) : AbortSignal.timeout(90000),
     }).then(async res => {
       if (!res.ok) {
         throw new Error(`Agent error ${res.status}`);

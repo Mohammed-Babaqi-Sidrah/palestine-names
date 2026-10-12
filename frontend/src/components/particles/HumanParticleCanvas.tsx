@@ -17,6 +17,7 @@ export default function HumanParticleCanvas() {
   const visible=useParticleStore(s=>s.stageVisible);
   const calligraphyReady=useParticleStore(s=>s.calligraphyReady);
   const mode=useParticleStore(s=>s.mode);
+  const centerY=useParticleStore(s=>s.stageY);
   const [supported] = useState(() => {
     try {
       const context = document.createElement('canvas').getContext('webgl2');
@@ -26,7 +27,7 @@ export default function HumanParticleCanvas() {
   });
   useEffect(()=>{document.documentElement.dataset.reducedMotion=String(reduced);},[reduced]);
   return <>
-    <div id="human-particle-canvas" aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
+    <div id="human-particle-canvas" data-scene={mode} data-center-y={centerY} aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
       {supported && records.length > 0 && <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}} onCreated={({gl})=>{
         useParticleStore.setState({webglReady:true});
         gl.domElement.addEventListener('webglcontextlost',()=>useParticleStore.setState({webglReady:false}));

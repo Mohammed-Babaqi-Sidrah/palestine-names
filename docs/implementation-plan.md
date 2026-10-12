@@ -25,3 +25,12 @@ Keep the original design at `50e0ec0`. Restore the six-chapter composition, open
 ## Review focus
 
 Reject malformed remote data without damaging the prior cache; allow source corrections/removals rather than append-only updates. Ensure no fake data appears on errors, no Arabic letters are separated, no hover is required to browse records, no touch scroll opens a record, and late requests cannot overwrite newer filters.
+
+## Focused refinement — 12 October user feedback
+
+The user wants the mesh to accompany scrolling, form the existing shapes, remove unnecessary controls, and improve the assistant layout/seal with Arabic Markdown. Keep the approved pipeline and original story, fonts, cards, spectrum and poetic headings.
+
+- Anchor the human mesh to the viewport throughout the story; interpolate the world-space anchor and formation together. Preserve number → map → person → tree → quiet crowd → فلسطين. Natural scrolling selects chapters; rendering settles after each transition. Respect OS reduced motion automatically and remove the navbar pause button.
+- Keep the paper folio, but reduce its sidebar to an Arabic olive seal, clear identity and source link. Use one persistent labeled textarea and one send action; retain failed questions and retry. Remove prompt pills, pseudo-document labels, tool timings and duplicate follow-up/reset forms.
+- Render safe Markdown with react-markdown and remark-gfm: Arabic prose, headings, lists, tables and links; skip raw HTML and unsafe URLs, avoid remote images, isolate code and allow table overflow inside the card.
+- First prove the existing failures with browser regressions, then verify the fixes on desktop/mobile. Run lint, types, build and existing pipeline tests. Capture the complete experience once, make a bounded correction pass, update this PR and show the live result.
