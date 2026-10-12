@@ -2,7 +2,7 @@
 
 An Arabic memorial and searchable archive of Palestinians killed in Gaza. Parchment surfaces, Arabic editorial typography and sampled human silhouettes form a number, a map, an olive tree and the word **فلسطين**. Every count and demographic value comes from the loaded dataset.
 
-The narrative leads into a paginated archive: search Arabic or English names, combine an exact age, change order, and open a record with the keyboard or pointer. Search state lives in the URL. The optional archivist uses dataset tools, with a local fallback when an AI service is unavailable.
+The original six-chapter narrative links to a dedicated paginated archive at `/archive`: search Arabic or English names, combine an exact age, change order, and open a record with the keyboard or pointer. Search state lives in the URL. The original statistic cards, age-spectrum bar and folio retain their visual design while consuming the synchronized data. The optional archivist uses dataset tools, with a local fallback when an AI service is unavailable.
 
 ## Data and daily checks
 

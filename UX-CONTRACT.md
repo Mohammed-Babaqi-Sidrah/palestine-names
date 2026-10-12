@@ -2,6 +2,8 @@
 
 Visual system: [DESIGN.md](DESIGN.md). UI locale is Arabic (`ar`); names retain their source spelling.
 
+The home route preserves the original six chapters. Search is reached through the original statistics-section button and opens `/archive`; it does not insert an additional chapter or change the home header.
+
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
 | Search/pagination | LivingArchiveScene | URL query and records API | Name, exact age, source/name/age order | Edits reset page; history restores; stale work aborted; clear restores input focus; no-results and retry tested. |

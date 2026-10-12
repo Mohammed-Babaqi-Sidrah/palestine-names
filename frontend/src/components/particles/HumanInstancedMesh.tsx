@@ -219,8 +219,8 @@ export default function HumanInstancedMesh() {
 
       if(mode === 'number' || mode === 'hero') {
         const point = number[i] || [700,175];
-        x=(point[0]/1400-.5)*w*.96;
-        y=-(point[1]/350-.5)*w*.24;
+        x=(point[0]/1400-.5)*w*(mobile ? 1.09 : 1.0);
+        y=-(point[1]/350-.5)*Math.min(h, w*.32);
         scale=mobile ? .043 : .062; z=0;
       } else if(mode === 'scatter') {
         // Sovereign borders and territory of Palestine
@@ -289,7 +289,7 @@ export default function HumanInstancedMesh() {
       } else if(mode === 'finale') {
         // Monumental Arabic Calligraphy: «فلسطين» (Palestine) formed by all souls
         const pt = palestineCalligraphy[i] || [800, 300];
-        const calligW = Math.min(w * .96, h * 1600 / 600);
+        const calligW = w * (mobile ? 1.05 : 0.88);
         const calligH = (calligW / 1600) * 600;
         x = (pt[0] / 1600 - 0.5) * calligW;
         y = -(pt[1] / 600 - 0.5) * calligH;

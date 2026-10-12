@@ -21,15 +21,19 @@ test.beforeEach(async ({ page }) => {
 test('real statistics, provenance and narrow layouts', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.dataset-note')).toContainText('نسخة محفوظة');
-  await expect(page.locator('#stats')).toContainText('٧٠');
+  await expect(page.locator('#stats')).toContainText('70');
   await expect(page.locator('#stats')).not.toContainText('21,637');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
-  await expect(page.locator('#archive')).toBeAttached();
+  await expect(page.locator('.chapter')).toHaveCount(6);
+  await expect(page.locator('#archive')).toHaveCount(0);
+  await page.getByRole('link', { name: 'البحث في السجلات' }).click();
+  await expect(page).toHaveURL(/\/archive/);
+  await expect(page.getByLabel('الاسم أو اسم العائلة')).toBeVisible();
 });
 
 test('search, clear focus, no results and record dialog', async ({ page }) => {
-  await page.goto('/#archive');
+  await page.goto('/archive');
   const search = page.getByLabel('الاسم أو اسم العائلة');
   await search.fill('missing');
   await expect(page.getByText('لا توجد أسماء مطابقة')).toBeVisible();
@@ -52,7 +56,7 @@ test('failed archive request retries and old queries do not win', async ({ page 
     await route.fulfill({ json: { items: q === 'missing' ? [] : [record], total: q === 'missing' ? 0 : 1,
       page: 1, page_size: 12, total_pages: 1 } }).catch(() => {});
   });
-  await page.goto('/#archive');
+  await page.goto('/archive');
   await expect(page.getByText('تعذّر تحميل الأسماء.')).toBeVisible();
   fail = false;
   await page.getByRole('button', { name: 'إعادة تحميل الأسماء' }).click();
@@ -81,7 +85,7 @@ test('reduced motion, pause persistence and WebGL fallback', async ({ page }) =>
   await page.getByRole('button', { name: 'إيقاف الحركة' }).click();
   await page.reload();
   await expect(page.getByRole('button', { name: 'تشغيل الحركة' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByLabel('الاسم أو اسم العائلة')).toBeAttached();
+  await expect(page.getByRole('link', { name: 'البحث في السجلات' })).toBeAttached();
 });
 
 test('URL filters, native sorting, paging and browser history', async ({ page }) => {
@@ -90,7 +94,7 @@ test('URL filters, native sorting, paging and browser history', async ({ page })
     return route.fulfill({ json: { items: [record], total: 25,
       page: Math.min(3, Number(params.get('page'))), page_size: 12, total_pages: 3 } });
   });
-  await page.goto('/?q=أمل&age=0#archive');
+  await page.goto('/archive?q=أمل&age=0');
   await expect(page.getByLabel('الاسم أو اسم العائلة')).toHaveValue('أمل');
   await expect(page.getByLabel('العمر المسجّل')).toHaveValue('0');
   await page.getByLabel('ترتيب الأسماء').selectOption('age:false');
@@ -113,7 +117,7 @@ test('optional assistant retains a failed question and retries', async ({ page }
   await page.goto('/#archivist');
   const question = page.getByRole('textbox', { name: /ماذا تريد أن تستحضر/ });
   await question.fill('ابحث عن أمل');
-  await page.getByRole('button', { name: /اسأل الأرشيف/ }).click();
+  await page.getByRole('button', { name: /استنطاق السجل الأرشيفي/ }).click();
   await expect(page.locator('.dialogue-user-query')).toContainText('ابحث عن أمل');
   await expect(page.getByRole('button', { name: /إعادة المحاولة/ })).toBeVisible();
   fail = false;

@@ -123,11 +123,13 @@ export default function ArchivistLetterScene() {
 
   return (
     <section id="archivist" className="chapter archivist" aria-labelledby="archivist-title">
+      <div className="ambient-memory-stage" data-particle-stage aria-hidden="true" />
       <div className="archivist-heading">
 
-        <h2 id="archivist-title">اسأل حارس الأرشيف.</h2>
+        <span className="eyebrow">04 — سِجل الذاكرة الحيّة</span>
+        <h2 id="archivist-title">استنطاق وثائق الذاكرة.</h2>
         <p className="micro-copy">
-          مساعد اختياري لقراءة الأسماء والإحصاءات. يمكنك البحث في الأرشيف مباشرة دون استخدام المساعد.
+          سِجلّ تاريخي يوثّق شهداء فلسطين بالاسم والعمر والعائلة، مستحضراً كل حياةٍ كأثرٍ خالد لا يُمحى.
         </p>
       </div>
 
@@ -139,7 +141,7 @@ export default function ArchivistLetterScene() {
             <div className="folio-dossier-card">
               <div className="dossier-header-badge">
                 <span className="dossier-flag-mark" aria-hidden="true">🇵🇸</span>
-                <span className="dossier-header-title">أسماء لا تُنسى</span>
+                <span className="dossier-header-title">سِجل الذاكرة الوطنية</span>
               </div>
 
               {/* Handcrafted Vector Archival Seal */}
@@ -207,7 +209,7 @@ export default function ArchivistLetterScene() {
                     </>
                   ) : (
                     <>
-                      <span>اسأل الأرشيف</span>
+                      <span>استنطاق السجل الأرشيفي</span>
                       <span className="send-arrow" aria-hidden="true">←</span>
                     </>
                   )}

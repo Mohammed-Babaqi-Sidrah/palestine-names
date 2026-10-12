@@ -17,7 +17,7 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
     <div
       className={`archival-seal-wrap ${className}`}
       style={{ width: size, height: size }}
-      role="img" aria-label="شارة أسماء لا تُنسى"
+      role="img" aria-label="شارة سِجل الذاكرة الوطنية"
     >
       <svg
         viewBox="0 0 200 200"
@@ -30,22 +30,22 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
         <defs>
           {/* Curved paths for text wrapping */}
           <path
-            id="seal-top-curve"
+            id={id + "-top"}
             d="M 28 100 A 72 72 0 0 1 172 100"
             fill="none"
           />
           <path
-            id={`${id}-bottom`}
+            id={id + "-bottom"}
             d="M 172 100 A 72 72 0 0 1 28 100"
             fill="none"
           />
           <path
-            id="seal-inner-top-curve"
+            id={id + "-inner-top"}
             d="M 38 100 A 62 62 0 0 1 162 100"
             fill="none"
           />
           <path
-            id="seal-inner-bottom-curve"
+            id={id + "-inner-bottom"}
             d="M 162 100 A 62 62 0 0 1 38 100"
             fill="none"
           />
@@ -73,16 +73,24 @@ export default function ArchivalSeal({ className = '', size = 140 }: ArchivalSea
         <circle cx="100" cy="100" r="58" stroke="#436148" strokeWidth="0.8" strokeDasharray="1.5 2.5" strokeOpacity="0.6" />
 
         {/* Top Arc Typography: Arabic Memorial Seal Title */}
-        <text x="100" y="60" textAnchor="middle" direction="rtl" className="seal-svg-text-primary" fill="#2d3f31">أسماء لا تُنسى</text>
+        <text direction="rtl" className="seal-svg-text-primary" fill="#2d3f31">
+          <textPath
+            href={"#" + id + "-top"}
+            startOffset="50%"
+            textAnchor="middle"
+          >
+            سِجلُّ الذَّاكِرَةِ الوَطَنِيَّةِ الفِلَسْطِينِيَّة
+          </textPath>
+        </text>
 
         {/* Bottom Arc Typography: Archival Foundation & Scope */}
         <text className="seal-svg-text-secondary" fill="#436148">
           <textPath
-            href={`#${id}-bottom`}
+            href={"#" + id + "-bottom"}
             startOffset="50%"
             textAnchor="middle"
           >
-            PALESTINE · LIVING MEMORY
+            DOCUMENTED HERITAGE · 1948–2026
           </textPath>
         </text>
 

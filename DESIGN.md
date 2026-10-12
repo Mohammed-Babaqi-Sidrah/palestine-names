@@ -8,7 +8,7 @@ colors:
   surface: "#efede4"
   primary: "#292d28"
   secondary: "#51564d"
-  muted: "#62675d"
+  muted: "#6c7166"
   olive: "#436148"
   danger: "#a44232"
   border: "#d8d9cb"
@@ -38,7 +38,7 @@ components:
 
 ## Overview
 
-Preserve the established parchment and WebGL identity, explicitly selected by the user. The visual reference is a quietly typeset memorial ledger, with actual names as its subject. The signature is a sampled crowd forming a number, a map, an olive tree and the joined word فلسطين. Experience mode governs the story; read/search mode governs the archive. Avoid dashboard decoration, fabricated certification and unsupported biographical claims.
+The binding visual reference is the original repository at `50e0ec0`, including its six-chapter composition, title copy, typography, parchment texture, compact statistic cards, segmented age spectrum, folio and circular memorial seal. The user rejected the broader visual rewrite. Restore those originals and make only local Arabic, scrolling, accessibility and data-accuracy fixes. Do not replace the cards with an editorial ledger, enlarge/re-font the hero, remove chapter labels, add a seventh chapter, or rewrite the poetic headings. Keep the searchable archive on its own route, linked from the existing search button. Experience mode governs the original story; read/search mode governs `/archive`.
 
 ## Colors
 
@@ -46,19 +46,19 @@ Runtime ownership remains in `frontend/src/app/globals.css`. This file mirrors i
 
 ## Typography
 
-Amiri carries the poetry, headings and Arabic names; IBM Plex Sans Arabic carries prose and controls. Use whole text runs, zero Arabic letter-spacing, no clipped diacritics and no letter-by-letter animation. Latin names have `lang=en` and `dir=ltr`; identifiers and ranges use bidi isolation. Data uses tabular numerals. Canvas calligraphy waits for the actual Amiri font, with an HTML fallback if it cannot load. Body copy is 16px with generous line-height; secondary labels are at least 14px.
+Keep the original type roles and scale: IBM Plex Sans Arabic for the opening h1, prose and controls; Amiri for the other headings, poetry and names; Courier New for the original large data figures. Keep the original Latin numerals on those figures. Use whole Arabic runs and zero Arabic tracking; fix shaping without replacing the typeface or visual hierarchy. Latin names use `lang=en` and `dir=ltr`; identifiers and ranges use bidi isolation. Canvas calligraphy waits for the actual Amiri font and has an HTML fallback. Fonts are served locally. Preserve the circular seal and its curved typography; unique SVG path IDs prevent duplicate-instance collisions.
 
 ## Layout
 
-Natural document scrolling owns the page. Header height is 88px desktop / 80px mobile. Chapters use bounded reading measures and explicit visual stage anchors. On desktop the map/tree share a split with prose; on mobile stages take their own rows. The searchable archive is paginated, never an unbounded list. Test widths 390, 760, 1280 and 1440px and long Arabic names. Breakpoints must not hide core actions or names.
+Natural scrolling owns the page. Preserve the original six chapters, their heading widths, header, footer and page rhythm. Use non-decorative stage anchors to align the original formations: the number stays in the center of the opening, the map/tree occupy the desktop's open space, and the tree keeps the original narrow card sidebar. On mobile, reserve enough space for a complete formation so it cannot sit behind the cards. No other layout substitution is authorized. The searchable utility is a separate paginated route. Check desktop/mobile and long Arabic names.
 
 ## Elevation & Depth
 
-Flat parchment with fine rules. Only header/menu/dialog need elevation. Text remains readable independently of the canvas. Cards do not need glow or stacked shadows. The canvas is decorative; the archive supplies equivalent keyboard access.
+Keep the original paper texture, translucency, rules, card borders and shadows. The original stylesheet is the authority, including existing decorative treatments. Text remains readable independently of the canvas; the archive provides keyboard access to the records.
 
 ## Shapes
 
-Use 8px document corners and 4px control corners. Preserve the original archival seal. Use the existing Lucide library for new control icons. Let whitespace and typography carry hierarchy.
+Keep the original component corners, badges, seal and iconography. Do not flatten or redesign these details. Reuse the original classes rather than adding replacement skins.
 
 ## Components
 

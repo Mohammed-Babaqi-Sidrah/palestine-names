@@ -6,7 +6,6 @@ export const CHAPTERS: { id: string; label: string; mode: SceneMode }[] = [
   { id: 'crowd', label: 'خارطة الذاكرة', mode: 'scatter' },
   { id: 'declaration', label: 'اسم واحد', mode: 'names' },
   { id: 'stats', label: 'شجرة الذاكرة', mode: 'stats' },
-  { id: 'archive', label: 'الأسماء', mode: 'archive' },
   { id: 'archivist', label: 'حارس الأرشيف', mode: 'archivist' },
   { id: 'finale', label: 'ما يبقى', mode: 'finale' },
 ];
@@ -14,6 +13,7 @@ export const CHAPTERS: { id: string; label: string; mode: SceneMode }[] = [
 export function useScrollStory() {
   useEffect(() => {
     let frame = 0;
+    let disposed = false;
     const sync = () => {
       frame = 0;
       const vh = window.innerHeight;
@@ -36,7 +36,7 @@ export function useScrollStory() {
         stageVisible: Boolean(stage && stage.bottom > 88 && stage.top < vh),
       });
     };
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(sync); };
+    const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(sync); };
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule, { passive: true });
     const observer = new ResizeObserver(schedule);
@@ -45,6 +45,7 @@ export function useScrollStory() {
     void document.fonts.ready.then(schedule);
     sync();
     return () => {
+      disposed = true;
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
