@@ -71,3 +71,9 @@ Motion: one viewport-fixed formation system, no scroll hijacking. The silhouette
 Do preserve source names verbatim, distinguish successful check time from source revision/date, and label figures as a sample. Do offer offline/fallback explanations, retry and ordinary archive browsing. Don't invent a fresh count, biography, source certification or list coverage date. Don't hide scrollbars, route announcements or focus rings.
 
 Assistant answers use react-markdown and remark-gfm with safe default URL filtering, skipped raw HTML, no remotely loaded images, RTL prose, isolated code and scrollable tables. One question form stays present through loading, answer and retry states. The source link and record buttons are retained as useful evidence.
+
+## Scroll transport refinement
+
+The user's next feedback asks for visible downward soul-like travel, not only chapter morphing. While scrolling down, transport the same silhouettes downward at varied speeds with gentle lateral drift; reverse the transport when scrolling up. Suspend position gathering during scrolling; souls re-enter beyond the viewport edges during long travel. Once scrolling pauses for 120 ms, gather into the section's complete formation and stop rendering. Bound travel on fast jumps and never apply transport with OS reduced motion. Restore the original main-branch finale anchor (51% desktop / 54% mobile), placing فلسطين behind the closing prose and quote rather than below them. Preserve the approved folio, Markdown, original six shapes and pipeline.
+
+Motion thesis: the focal sequence is souls travelling with the reader and gathering into shared memory. Scroll movement drives transport; chapter changes drive gathering. No autonomous falling loop, extra controls or new libraries. Use the existing single GPU instanced mesh, demand frames while moving/settling, and no spatial travel in reduced motion.

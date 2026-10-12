@@ -77,7 +77,7 @@ Playwright covers desktop and mobile layouts, search/filter/order/pagination, hi
 
 [DESIGN.md](DESIGN.md) records the parchment/olive/ink system and [UX-CONTRACT.md](UX-CONTRACT.md) records interaction ownership. Amiri and IBM Plex Sans Arabic are served locally. Whole Arabic words retain shaping; identifiers and Latin names use bidi isolation. Canvas calligraphy waits for the actual font and has an HTML fallback.
 
-Scrolling remains native. One scheduled observer changes viewport-fixed formations as chapters scroll past. Shapes and their anchors interpolate together, and rendering stops when settled. OS reduced motion is respected automatically; there is no manual motion control. The Arabic assistant retains one question form and renders Markdown lists, tables, emphasis and safe links. Without WebGL, the count, narrative and complete searchable archive remain available. Record details use a native dialog with Escape and focus restoration.
+Scrolling remains native. One scheduled observer changes viewport-fixed formations as chapters scroll past. Scroll carries the souls downward at varied speeds; stopping gathers them into the current shape. Shapes and their anchors interpolate together, and rendering stops when settled. Finale calligraphy uses the original main-branch centre behind the closing passage. OS reduced motion is respected automatically; there is no manual motion control. The Arabic assistant retains one question form and renders Markdown lists, tables, emphasis and safe links. Without WebGL, the count, narrative and complete searchable archive remain available. Record details use a native dialog with Escape and focus restoration.
 
 ## Structure
 

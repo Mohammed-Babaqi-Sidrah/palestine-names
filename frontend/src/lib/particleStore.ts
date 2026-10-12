@@ -34,6 +34,7 @@ interface ParticleState {
   archiveRecords: Record[];
   mode: SceneMode;
   scrollProgress: number;           // 0–1 overall page scroll
+  scrollY: number;                  // Pixels travelled by the reader, drives soul transport
   hoveredId: string | null;         // record ID of hovered human
   hoveredRecord: Record | null;     // full record data for popup
   hoveredScreenPos: { x: number; y: number } | null;
@@ -71,6 +72,7 @@ export const useParticleStore = create<ParticleState>((set) => ({
   archiveRecords: [],
   mode: 'hero',
   scrollProgress: 0,
+  scrollY: 0,
   hoveredId: null,
   hoveredRecord: null,
   hoveredScreenPos: null,

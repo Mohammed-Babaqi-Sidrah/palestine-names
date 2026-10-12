@@ -107,6 +107,9 @@ export default function HumanInstancedMesh() {
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const color = useMemo(() => new THREE.Color(), []);
   const current = useRef(new Float32Array(2400 * 4));
+  const lastScroll = useRef<number | null>(null);
+  const flow = useRef(0);
+  const transportAge = useRef(Infinity);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -308,7 +311,7 @@ export default function HumanInstancedMesh() {
   },[targets,reduced,invalidate]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
+    if(s.scrollY!==prev.scrollY || s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
   }),[invalidate]);
 
   useEffect(() => {
@@ -340,6 +343,7 @@ export default function HumanInstancedMesh() {
       if(isInteractive(event.target)) return;
       const stage = useParticleStore.getState();
       if (!stage.stageVisible || stage.selectedRecord) return;
+      if (!stage.reducedMotion && transportAge.current < .12) return;
       if(!['number','scatter','stats','finale'].includes(useParticleStore.getState().mode)) return;
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
@@ -377,14 +381,22 @@ export default function HumanInstancedMesh() {
   useFrame((_state, delta) => {
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
-    if (!pState.stageVisible || document.hidden) return;
+    if (!pState.stageVisible || document.hidden) { lastScroll.current = pState.scrollY; return; }
+    const scrollDelta = pState.scrollY - (lastScroll.current ?? pState.scrollY);
+    lastScroll.current = pState.scrollY;
+    // Scroll carries the same souls downward; stopping gathers them into the shape.
+    // Bound anchor jumps and fast flings to a quarter-screen of travel per frame.
+    const carry = reduced ? 0 : THREE.MathUtils.clamp(scrollDelta, -size.height * .25, size.height * .25) * viewport.height / size.height * .85;
+    transportAge.current = carry ? 0 : transportAge.current + Math.min(delta, .05);
+    const travelling = !reduced && transportAge.current < .12;
+    flow.current = reduced ? 0 : Math.max(Math.abs(carry) / viewport.height, flow.current * Math.exp(-Math.min(delta, .05) * 8));
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
-    let unsettled=false;
+    let unsettled=flow.current > .001;
 
     // Enable hover picking in number, scatter, stats (tree), and finale (calligraphy)
-    const pickable = ['number','scatter','stats','finale'].includes(mode) && !pState.selectedRecord;
+    const pickable = !travelling && ['number','scatter','stats','finale'].includes(mode) && !pState.selectedRecord;
     let pick=-1, distance=140;
 
     if(pickable) for(let i=0;i<count;i++) {
@@ -402,8 +414,19 @@ export default function HumanInstancedMesh() {
       });
     }
 
-for(let i=0;i<count;i++) {
+    for(let i=0;i<count;i++) {
       let tx=targets[i*4], ty=targets[i*4+1], tz=targets[i*4+2], ts=targets[i*4+3];
+
+      current.current[i*4+1] -= carry * (.55 + random(i,12) * .9);
+      current.current[i*4] += Math.sin(random(i,13) * Math.PI * 2) * Math.abs(carry) * .22;
+      if (travelling) {
+        // Re-enter beyond the viewport edge, so souls keep falling through long scrolls.
+        if (current.current[i*4+1] < -viewport.height * .6) current.current[i*4+1] += viewport.height * 1.2;
+        if (current.current[i*4+1] > viewport.height * .6) current.current[i*4+1] -= viewport.height * 1.2;
+        if (current.current[i*4] < -viewport.width * .6) current.current[i*4] += viewport.width * 1.2;
+        if (current.current[i*4] > viewport.width * .6) current.current[i*4] -= viewport.width * 1.2;
+        ts = Math.min(ts, size.width < 760 ? .06 : .065);
+      }
 
       // Interpolate in world space, including the anchor, to avoid chapter jumps.
       tx += offsetX;
@@ -419,11 +442,13 @@ for(let i=0;i<count;i++) {
         const target=k===0?tx:k===1?ty:k===2?tz:ts, index=i*4+k;
         const diff=target-current.current[index];
         if(Math.abs(diff)>.001) unsettled=true;
-        current.current[index]+=diff*factor;
+        // Gathering waits for the reader to pause; it must not cancel falling motion.
+        current.current[index]+=diff*(travelling && k < 2 ? 0 : factor);
       }
 
       dummy.position.set(current.current[i*4],current.current[i*4+1],current.current[i*4+2]);
-      dummy.scale.setScalar(Math.max(.001,current.current[i*4+3]));
+      const scale = Math.max(.001,current.current[i*4+3]);
+      dummy.scale.set(scale, scale * (1 + flow.current * 6), scale);
       dummy.updateMatrix();
       mesh.current.setMatrixAt(i,dummy.matrix);
 

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+declare global { interface Window { meshY: number[] } }
+
 const record = { id: 'a', ar_name: 'أمل النجار', en_name: 'Amal Najjar', age: 0, dob: '2024-01-01', sex: 'f', update: '10' };
 const statistics = { total: 2, total_with_age: 2, children_under_18: 1, infants_under_1: 1, unknown_age: 0,
   average_age: 35, median_age: 35, min_age: 0, max_age: 70, male: 1, female: 1,
@@ -104,6 +106,66 @@ test('mesh stays in the viewport while scrolling and changes formation', async (
   await page.locator('#stats').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
   await expect(mesh).toHaveAttribute('data-scene', 'stats');
   await expect(mesh).toHaveCSS('opacity', '1');
+});
+
+test('scroll carries souls downward then gathers the same formation', async ({ page }) => {
+  await page.addInitScript(() => {
+    const samples: number[] = [];
+    window.meshY = samples;
+    for (const method of ['bufferData', 'bufferSubData'] as const) {
+      const original = WebGL2RenderingContext.prototype[method];
+      Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+        const data = args[method === 'bufferData' ? 1 : 2];
+        // The one-record fixture produces one 4×4 instance transform.
+        if (data instanceof Float32Array && data.length === 16) samples.push(data[13]);
+        return Reflect.apply(original, this, args);
+      } });
+    }
+  });
+  await page.goto('/');
+  const readY = () => page.evaluate(() => window.meshY);
+  await expect.poll(async () => (await readY()).length).toBeGreaterThan(0);
+  await page.waitForTimeout(1500);
+  const before = (await readY()).at(-1)!;
+  await page.evaluate(() => {
+    window.meshY.length = 0;
+    window.scrollTo({ top: 180, behavior: 'instant' });
+  });
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'number');
+  await expect.poll(async () => Math.min(...await readY())).toBeLessThan(before - .25);
+  await expect.poll(async () => Math.abs((await readY()).at(-1)! - before), { timeout: 5000 }).toBeLessThan(.02);
+  await page.evaluate(async () => {
+    window.meshY.length = 0;
+    for (let i = 0; i < 18; i++) {
+      window.scrollBy({ top: 8, behavior: 'instant' });
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    }
+  });
+  await expect.poll(async () => Math.min(...await readY())).toBeLessThan(before - .65);
+  await expect.poll(async () => Math.abs((await readY()).at(-1)! - before), { timeout: 5000 }).toBeLessThan(.02);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
+  await page.evaluate(() => {
+    window.meshY.length = 0;
+    window.scrollBy({ top: 120, behavior: 'instant' });
+  });
+  await page.waitForTimeout(200);
+  expect(Math.min(...await readY())).toBeGreaterThan(before - .02);
+});
+
+test('Palestine stands behind the closing passage at the original centre', async ({ page }) => {
+  await page.goto('/#finale');
+  const mesh = page.locator('#human-particle-canvas');
+  await expect(mesh).toHaveAttribute('data-scene', 'finale');
+  const bounds = await page.locator('#finale').evaluate(el => ({
+    top: el.querySelector('.finale-lead-block')!.getBoundingClientRect().top,
+    bottom: el.querySelector('.flag-quote')!.getBoundingClientRect().bottom,
+  }));
+  const y = Number(await mesh.getAttribute('data-center-y'));
+  const viewport = page.viewportSize()!;
+  expect(y / viewport.height).toBeCloseTo(viewport.width < 760 ? .54 : .51, 2);
+  expect(y).toBeGreaterThan(bounds.top);
+  expect(y).toBeLessThan(bounds.bottom);
 });
 
 test('assistant renders Arabic Markdown and rejects executable content', async ({ page }) => {

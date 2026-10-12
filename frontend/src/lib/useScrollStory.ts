@@ -33,13 +33,15 @@ export function useScrollStory() {
       } else if (active.mode === 'stats') {
         x = mobile ? .5 : .27; y = .53; width = mobile ? .9 : .55; height = .88;
       } else if (active.mode === 'finale') {
-        y = .76; height = .5;
+        // Original main-branch centre: calligraphy stands behind the closing prose.
+        y = mobile ? .54 : .51; height = .5;
       }
       const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * .3))) : 0;
       const scrollHeight = Math.max(1, document.documentElement.scrollHeight - vh);
       useParticleStore.setState({
         mode: active.mode, chapterProgress: progress,
         scrollProgress: Math.max(0, Math.min(1, window.scrollY / scrollHeight)),
+        scrollY: window.scrollY,
         stageWidth: vw * width, stageHeight: vh * height,
         stageX: vw * x, stageY: vh * y,
         stageVisible: true,
