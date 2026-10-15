@@ -29,6 +29,7 @@ interface ParticleState {
   dataStatus: 'loading' | 'ready' | 'error';
   reducedMotion: boolean;
   webglReady: boolean;
+  particleCount: number;
   chapterProgress: number;
   selectedRecord: Record | null;
   archiveRecords: Record[];
@@ -67,6 +68,7 @@ export const useParticleStore = create<ParticleState>((set) => ({
   dataStatus: 'loading',
   reducedMotion: true,
   webglReady: false,
+  particleCount: 0,
   chapterProgress: 0,
   selectedRecord: null,
   archiveRecords: [],

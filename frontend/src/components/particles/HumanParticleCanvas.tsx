@@ -3,6 +3,7 @@ import { Component, type ReactNode, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import HumanInstancedMesh from './HumanInstancedMesh';
 import { useParticleStore } from '@/lib/particleStore';
+import { particleQuality } from '@/lib/particleQuality';
 class CanvasBoundary extends Component<{children: ReactNode},{failed:boolean}> {
   state={failed:false};
   static getDerivedStateFromError() { return {failed:true}; }
@@ -18,6 +19,7 @@ export default function HumanParticleCanvas() {
   const calligraphyReady=useParticleStore(s=>s.calligraphyReady);
   const mode=useParticleStore(s=>s.mode);
   const centerY=useParticleStore(s=>s.stageY);
+  const [quality] = useState(() => particleQuality(window.innerWidth));
   const [supported] = useState(() => {
     try {
       const context = document.createElement('canvas').getContext('webgl2');
@@ -28,10 +30,10 @@ export default function HumanParticleCanvas() {
   useEffect(()=>{document.documentElement.dataset.reducedMotion=String(reduced);},[reduced]);
   return <>
     <div id="human-particle-canvas" data-scene={mode} data-center-y={centerY} aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
-      {supported && records.length > 0 && <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}} onCreated={({gl})=>{
+      {supported && records.length > 0 && <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,quality.dpr]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:quality.fps>30,alpha:true,powerPreference:'low-power'}} onCreated={({gl,invalidate})=>{
         useParticleStore.setState({webglReady:true});
         gl.domElement.addEventListener('webglcontextlost',()=>useParticleStore.setState({webglReady:false}));
-        gl.domElement.addEventListener('webglcontextrestored',()=>useParticleStore.setState({webglReady:true}));
+        gl.domElement.addEventListener('webglcontextrestored',()=>{useParticleStore.setState({webglReady:true});invalidate();});
       }} fallback={null}><HumanInstancedMesh /></Canvas></CanvasBoundary>}
     </div>
     <div className="canvas-scrim" aria-hidden="true" />

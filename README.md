@@ -90,3 +90,9 @@ Scrolling remains native. One scheduled observer changes viewport-fixed formatio
 - `docs/implementation-plan.md`: enhancement plan and review focus.
 
 Built by [Mohammed Babaqi](https://github.com/MohammedBabaqi). Dataset maintained by [Tech For Palestine](https://github.com/TechForPalestine/palestine-datasets); preserve source attribution when reusing the records.
+
+### Particle performance
+
+The visual sample is capped at 2,400 figures on desktop and 1,000 on mobile. Devices reporting at most four CPU cores or 4 GB memory use 600 figures, a 1× pixel ratio and a 30 fps paint cap; other devices use a maximum 1.25× pixel ratio and 60 fps cap. These are conservative hints rather than a hardware guarantee. The on-screen sample caption reports the rendered count. One instanced draw pass reuses colour/transport buffers and directly updates simple matrices. No particle frames run while settled or hidden. Scroll input wakes the field immediately; gathering begins after a short 60 ms pause, and reduced motion bypasses travel. The one-name section uses a brown-and-green olive sprig behind the record. Markdown code loads when an assistant answer appears. Exact data, search and the WebGL-free reading fallback remain available independently of the visual sample.
+
+[Measured comparison and regression coverage](docs/particle-performance.md): 66% less desktop scripting and 46% less CPU-throttled mobile scripting during the same scroll, with 10% less initial JavaScript. These are local laboratory measurements.

@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useParticleStore } from '@/lib/particleStore';
 import type { AgentResponse } from '@/lib/types';
 import ArchivalSeal from './ArchivalSeal';
-import ArchiveMarkdown from './ArchiveMarkdown';
+const ArchiveMarkdown = dynamic(() => import('./ArchiveMarkdown'), {
+  loading: () => <p className="archive-working" role="status">نهيّئ الإجابة…</p>,
+});
 
 export default function ArchivistLetterScene() {
   const [query, setQuery] = useState('');

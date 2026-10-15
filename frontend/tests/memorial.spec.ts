@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-declare global { interface Window { meshY: number[] } }
+declare global { interface Window { meshY: number[]; particleProbe: { draws: number; count: number; brown: number; green: number; colorUploads: number } } }
 
 const record = { id: 'a', ar_name: 'أمل النجار', en_name: 'Amal Najjar', age: 0, dob: '2024-01-01', sex: 'f', update: '10' };
 const statistics = { total: 2, total_with_age: 2, children_under_18: 1, infants_under_1: 1, unknown_age: 0,
@@ -201,6 +201,73 @@ test('assistant renders Arabic Markdown and rejects executable content', async (
   await expect(prose.locator('a[href^="javascript:"]')).toHaveCount(0);
   await expect(prose.locator('script')).toHaveCount(0);
   expect(await page.evaluate(() => 'markdownExecuted' in window)).toBe(false);
+});
+
+test('low-resource devices receive a bounded field that stops rendering when idle', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'hardwareConcurrency', { value: 2 });
+    Object.defineProperty(navigator, 'deviceMemory', { value: 2 });
+    window.particleProbe = { draws: 0, count: 0, brown: 0, green: 0, colorUploads: 0 };
+    const original = WebGL2RenderingContext.prototype.drawElementsInstanced;
+    WebGL2RenderingContext.prototype.drawElementsInstanced = function(...args) {
+      window.particleProbe.draws++; window.particleProbe.count = args[4];
+      return Reflect.apply(original, this, args);
+    };
+    const upload = WebGL2RenderingContext.prototype.bufferSubData;
+    Object.defineProperty(WebGL2RenderingContext.prototype, 'bufferSubData', { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+      if (args[2] instanceof Float32Array && args[2].length === 600 * 3) window.particleProbe.colorUploads++;
+      return Reflect.apply(upload, this, args);
+    } });
+  });
+  await page.route('**/api/memorial', route => route.fulfill({ json: { statistics,
+    records: Array.from({ length: 2400 }, (_, i) => ({ ...record, id: String(i) })), dataset: { status: 'fallback', record_count: 2400 } } }));
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => window.particleProbe.count)).toBe(600);
+  await page.waitForTimeout(1800);
+  const idle = await page.evaluate(() => window.particleProbe.draws);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(idle);
+  await page.evaluate(async () => {
+    window.particleProbe.draws = 0; window.particleProbe.colorUploads = 0;
+    const start = performance.now();
+    await new Promise<void>(resolve => {
+      const move = (now: number) => { window.scrollTo({ top: (now - start) * .15, behavior: 'instant' });
+        if (now - start < 1000) requestAnimationFrame(move); else resolve(); };
+      requestAnimationFrame(move);
+    });
+  });
+  const measured = await page.evaluate(() => window.particleProbe);
+  expect(measured.draws).toBeGreaterThan(10);
+  expect(measured.draws).toBeLessThanOrEqual(40);
+  expect(measured.colorUploads).toBe(0);
+});
+
+test('one name has a brown-and-green olive branch behind its readable record', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.particleProbe = { draws: 0, count: 0, brown: 0, green: 0, colorUploads: 0 };
+    for (const method of ['bufferData', 'bufferSubData'] as const) {
+      const original = WebGL2RenderingContext.prototype[method];
+      Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+        const data = args[method === 'bufferData' ? 1 : 2];
+        if (data instanceof Float32Array && data.length === 128 * 3) {
+          window.particleProbe.brown = 0; window.particleProbe.green = 0;
+          for (let i = 0; i < data.length; i += 3) {
+            if (data[i] > data[i + 1] * 1.3) window.particleProbe.brown++;
+            if (data[i + 1] > data[i] * 1.1) window.particleProbe.green++;
+          }
+        }
+        return Reflect.apply(original, this, args);
+      } });
+    }
+  });
+  await page.route('**/api/memorial', route => route.fulfill({ json: { statistics,
+    records: Array.from({ length: 128 }, (_, i) => ({ ...record, id: String(i) })), dataset: { status: 'fallback', record_count: 128 } } }));
+  await page.goto('/#declaration');
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'names');
+  await expect.poll(() => page.evaluate(() => window.particleProbe.brown)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.particleProbe.green)).toBeGreaterThan(0);
+  await page.locator('.one-record button').click();
+  await expect(page.getByRole('dialog')).toContainText('أمل النجار');
 });
 
 test('URL filters, native sorting, paging and browser history', async ({ page }) => {

@@ -64,7 +64,7 @@ Keep the original component corners, badges, seal and iconography. Keep the exis
 
 Canonical owners: `Navbar` for navigation/motion, `LivingArchiveScene` for search state and pagination, `RecordDialog` for record details, `DatasetNote` for provenance, `api.ts` for cancellation/timeout, `useScrollStory` for chapter/stage alignment, `globals.css` for browser surfaces. Statistics always consume the API's computed values. AI is optional and identified as an assistant, never an official registry.
 
-Motion: one viewport-fixed formation system, no scroll hijacking. The silhouettes remain the focal continuity element: number → map → one person → olive tree → quiet field → joined Arabic calligraphy. Anchor and shape changes interpolate together in world space. Rendering stops after a transition settles or the page is hidden; remove idle breathing and the manual pause control. OS reduced motion snaps directly to complete forms. Assistant feedback stays textual and quiet. A touch drag never selects a figure.
+Motion: one viewport-fixed formation system, no scroll hijacking. The silhouettes remain the focal continuity element: number → map → olive sprig behind one name → olive tree → quiet field → joined Arabic calligraphy. Anchor and shape changes interpolate together in world space. Rendering stops after a transition settles or the page is hidden; remove idle breathing and the manual pause control. OS reduced motion snaps directly to complete forms. Assistant feedback stays textual and quiet. A touch drag never selects a figure.
 
 ## Do's and Don'ts
 
@@ -74,7 +74,7 @@ Assistant answers use react-markdown and remark-gfm with safe default URL filter
 
 ## Scroll transport refinement
 
-The user's next feedback asks for visible downward soul-like travel, not only chapter morphing. While scrolling down, transport the same silhouettes downward at varied speeds with gentle lateral drift; reverse the transport when scrolling up. Suspend position gathering during scrolling; souls re-enter beyond the viewport edges during long travel. Once scrolling pauses for 120 ms, gather into the section's complete formation and stop rendering. Bound travel on fast jumps and never apply transport with OS reduced motion. Restore the original main-branch finale anchor (51% desktop / 54% mobile), placing فلسطين behind the closing prose and quote rather than below them. Preserve the approved folio, Markdown, original six shapes and pipeline.
+The user's next feedback asks for visible downward soul-like travel, not only chapter morphing. While scrolling down, transport the same silhouettes downward at varied speeds with gentle lateral drift; reverse the transport when scrolling up. Suspend position gathering during scrolling; souls re-enter beyond the viewport edges during long travel. Once scrolling pauses for 60 ms, gather into the section's complete formation and stop rendering. Bound travel on fast jumps and never apply transport with OS reduced motion. Restore the original main-branch finale anchor (51% desktop / 54% mobile), placing فلسطين behind the closing prose and quote rather than below them. Preserve the approved folio, Markdown, six-chapter composition and pipeline; the later one-name olive sprig is the only formation replacement.
 
 Motion thesis: the focal sequence is souls travelling with the reader and gathering into shared memory. Scroll movement drives transport; chapter changes drive gathering. No autonomous falling loop, extra controls or new libraries. Use the existing single GPU instanced mesh, demand frames while moving/settling, and no spatial travel in reduced motion.
 
@@ -83,3 +83,9 @@ Motion thesis: the focal sequence is souls travelling with the reader and gather
 Round displayed age summaries (average and median) to whole years. Record ages are already whole years from the validated source. Preserve exact counts, decimal percentages and the underlying API statistics. Keep missing ages as unknown and infants as under one year.
 
 Refine only the assistant logo as a custom code-native SVG: preserve the olive ink, circular stamp and existing Arabic inscriptions; remove tiny inner labels and excess concentric rings, and use a clear open book with an olive sprig. The silhouette must remain clear at the existing 88px mobile / 156px desktop sizes. No generated image asset, new logo service, dependencies, page-layout or motion changes.
+
+## Particle resource budget and one-name branch — 15 October
+
+The user wants faster loading, less resource use and immediate scroll response, with static shapes while idle. Preserve demand rendering and the six-chapter identity. Limit GPU paints to 60 fps (30 on devices reporting low memory/CPU), cap pixel density, reuse per-particle random values/colours and write simple scale/translation matrices directly. Keep exact API records and counts; report the actual rendered sample size. Lazy-load Markdown only when an assistant answer is present. Measure the same desktop and CPU-throttled mobile scroll before and after; don't claim universal hardware support from an emulator.
+
+Replace only the declaration's two side formations and enlarged centre figure with one particle olive sprig behind the name: curved brown wood, narrow green leaves, no side wedges. Retain the name card, heading, source record and accessible details. The scroll carries the same souls between formations; idle holds the shape and reduced motion skips travel. No idle drift, new libraries, controls, pipeline changes or wider redesign.

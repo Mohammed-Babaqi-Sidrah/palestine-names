@@ -1,8 +1,10 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
+import { particleQuality } from '@/lib/particleQuality';
+const SCROLL_PAUSE_SECONDS = .06;
 
 // One flat, low-poly silhouette; every body is a single GPU instance.
 function humanGeometry() {
@@ -101,12 +103,34 @@ export default function HumanInstancedMesh() {
     const ids = new Set(archiveRecords.map(r => r.id));
     return [...archiveRecords, ...records.filter(r => !ids.has(r.id))];
   }, [mode, records, archiveRecords]);
-  const count = Math.min(size.width < 760 ? 1000 : 2400, visibleRecords.length);
+  const quality = particleQuality(size.width);
+  const count = Math.min(quality.count, visibleRecords.length);
+  const frameInterval = 1000 / quality.fps;
+  const lastPaint = useRef(0);
+  const renderTimer = useRef<number | null>(null);
+  const requestRender = useCallback(() => {
+    if (renderTimer.current !== null) return;
+    const remaining = frameInterval - (performance.now() - lastPaint.current);
+    if (remaining > 1) {
+      // Wake just before the deadline; the RAF paint below still enforces the cap.
+      renderTimer.current = window.setTimeout(() => { renderTimer.current = null; invalidate(); }, Math.max(0, remaining-2));
+    } else invalidate();
+  }, [frameInterval, invalidate]);
+  useEffect(() => () => {
+    if (renderTimer.current !== null) clearTimeout(renderTimer.current);
+    renderTimer.current = null;
+  }, []);
+  useEffect(() => {
+    useParticleStore.setState({ particleCount: count });
+    return () => { useParticleStore.setState({ particleCount: 0 }); };
+  }, [count]);
   const geometry = useMemo(() => humanGeometry(), []);
   const material = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', side: THREE.DoubleSide }), []);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-  const color = useMemo(() => new THREE.Color(), []);
+  const gold = useMemo(() => new THREE.Color('#d4af37'), []);
   const current = useRef(new Float32Array(2400 * 4));
+  const transport = useMemo(() => Float32Array.from({ length: count * 2 }, (_, k) => k % 2
+    ? Math.sin(random(Math.floor(k / 2),13) * Math.PI * 2) * .22
+    : .55 + random(Math.floor(k / 2),12) * .9), [count]);
   const lastScroll = useRef<number | null>(null);
   const flow = useRef(0);
   const transportAge = useRef(Infinity);
@@ -239,8 +263,30 @@ export default function HumanInstancedMesh() {
         z = isBorder ? 0.35 + c * 0.25 : (c - 0.5) * 0.7;
         scale = (mobile ? 0.052 : 0.068) + (isBorder ? 0.012 : 0) + c * 0.01;
       } else if(mode === 'names') {
-        x=(a>.5?1:-1)*(w*.32+b*w*.19); y=(c-.5)*h*.7; scale=.07;
-        if(i===0) { x=0; y=h*.01; z=3; scale=mobile ? .7 : 1.05; }
+        // One curved olive sprig behind the name, with brown wood and narrow leaves.
+        const woodCount = Math.max(1, Math.floor(count * .24));
+        const stem = (t: number) => [-w*.36+t*w*.72, -h*.28+t*h*.56-Math.sin(t*Math.PI)*h*.08];
+        if (i < woodCount) {
+          const t = i / Math.max(1, woodCount-1);
+          const point = stem(t);
+          x = point[0] + (a-.5)*w*.006;
+          y = point[1] + (b-.5)*h*.014;
+          scale = mobile ? .05 : .06;
+        } else {
+          const leaf = (i-woodCount) % 16;
+          const station = Math.floor(leaf/2);
+          const t = .14 + station*.11;
+          const point = stem(t);
+          const tangent = Math.atan2(h*(.56-.08*Math.PI*Math.cos(t*Math.PI)), w*.72);
+          const angle = tangent + (leaf%2 ? 1 : -1)*.95;
+          const length = w*(mobile ? .15 : .12)*(.86+station*.02);
+          const along = a*length;
+          const across = Math.sin(a*Math.PI)*length*.25*(b-.5);
+          x = point[0]+Math.cos(angle)*along-Math.sin(angle)*across;
+          y = point[1]+Math.sin(angle)*along+Math.cos(angle)*across;
+          scale = mobile ? .04 : .05;
+        }
+        z=(c-.5)*.2;
       } else if(mode === 'archive') {
         const rank = ranks.get(visibleRecords[i]?.id);
         const active = query.trim().length>0 || sort!=='none';
@@ -304,22 +350,81 @@ export default function HumanInstancedMesh() {
     return values;
   },[count,w,h,size.width,mode,number,palestinePoints,palestineCalligraphy,archiveRecords,visibleRecords,query,sort]);
 
-  useEffect(() => {
+  const palette = useMemo(() => {
+    const values = new Float32Array(count * 3);
+    const color = new THREE.Color();
+    for (let i=0; i<count; i++) {
+      // Color styling per mode
+      if (mode === 'finale') {
+        // Palestinian Flag Palette for «فلسطين»: Red, Green, White, Black
+        const flagTier = i % 4;
+        if (flagTier === 0) {
+          color.set('#e4312b'); // Palestinian Red
+        } else if (flagTier === 1) {
+          color.set('#149954'); // Palestinian Green
+        } else if (flagTier === 2) {
+          color.set('#ffffff'); // Palestinian White
+        } else {
+          color.set('#1e221e'); // Palestinian Black
+        }
+      } else if (mode === 'stats') {
+        // Olive tree palette: trunk/roots vs boughs vs leaves
+        const ratio = i / Math.max(count, 1);
+        if (ratio < 0.28) {
+          color.set(i % 5 === 0 ? '#433b32' : '#3d4438'); // deep bark & earth
+        } else if (ratio < 0.60) {
+          color.set(i % 4 === 0 ? '#4e5b4b' : '#5b6b55'); // olive wood branches
+        } else {
+          color.set(i % 3 === 0 ? '#2d6a4f' : '#40916c'); // living olive leaves
+        }
+      } else if (mode === 'names') {
+        color.set(i < Math.max(1, Math.floor(count*.24)) ? '#79563c' : i%3 === 0 ? '#436148' : '#668253');
+      } else if (mode === 'number') {
+        color.set('#3a4437');
+      } else {
+        color.set(i % 17 === 0 ? '#586b53' : '#7d887a');
+      }
+
+      color.toArray(values, i*3);
+
+    }
+    return values;
+  }, [mode, count]);
+  useLayoutEffect(() => {
+    if (!mesh.current) return;
+    mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if (mesh.current.instanceColor?.count === count) {
+      mesh.current.instanceColor.array.set(palette);
+      mesh.current.instanceColor.needsUpdate = true;
+    } else mesh.current.instanceColor = new THREE.InstancedBufferAttribute(palette.slice(), 3);
+    requestRender();
+  }, [palette, count, requestRender]);
+
+  const clearHighlight = useCallback(() => {
+    const previous = hovered.current;
+    const colours = mesh.current?.instanceColor;
+    if (colours && previous >= 0 && previous < colours.count) {
+      colours.setXYZ(previous, palette[previous*3], palette[previous*3+1], palette[previous*3+2]);
+      mesh.current!.instanceColor!.needsUpdate = true;
+    }
     hovered.current=-1;
     useParticleStore.setState({ hoveredRecord: null, hoveredScreenPos: null });
-    invalidate();
-  },[targets,reduced,invalidate]);
+  }, [palette]);
+  useEffect(() => {
+    clearHighlight();
+    requestRender();
+  },[targets,reduced,clearHighlight,requestRender]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.scrollY!==prev.scrollY || s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { invalidate(); }
-  }),[invalidate]);
+    if(s.scrollY!==prev.scrollY || s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { requestRender(); }
+  }),[requestRender]);
 
   useEffect(() => {
     const clear = () => {
+      if (pointer.current.x === -9999 && hovered.current === -1) return;
       pointer.current={x:-9999,y:-9999};
-      hovered.current=-1;
-      useParticleStore.setState({ hoveredRecord:null, hoveredScreenPos:null });
-      invalidate();
+      clearHighlight();
+      requestRender();
     };
 
     // Only skip raycasting when strictly touching interactive controls or typing in chat, or over cards in section 3
@@ -334,7 +439,7 @@ export default function HumanInstancedMesh() {
       if(event.pointerType==='touch') return;
       if(isInteractive(event.target)) { clear(); return; }
       pointer.current={x:event.clientX,y:event.clientY};
-      invalidate();
+      requestRender();
     };
 
     const tap = (event: PointerEvent) => {
@@ -343,7 +448,7 @@ export default function HumanInstancedMesh() {
       if(isInteractive(event.target)) return;
       const stage = useParticleStore.getState();
       if (!stage.stageVisible || stage.selectedRecord) return;
-      if (!stage.reducedMotion && transportAge.current < .12) return;
+      if (!stage.reducedMotion && transportAge.current < SCROLL_PAUSE_SECONDS) return;
       if(!['number','scatter','stats','finale'].includes(useParticleStore.getState().mode)) return;
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
@@ -362,33 +467,42 @@ export default function HumanInstancedMesh() {
     window.addEventListener('pointercancel',cancel,{passive:true});
     window.addEventListener('pointermove',move,{passive:true});
     window.addEventListener('pointerup',tap,{passive:true});
-    window.addEventListener('scroll',clear,{passive:true});
+    const scroll = () => { clear(); requestRender(); };
+    const visibility = () => { clear(); if (!document.hidden) requestRender(); };
+    window.addEventListener('scroll',scroll,{passive:true});
     document.addEventListener('pointerleave',clear);
-    document.addEventListener('visibilitychange',clear);
+    document.addEventListener('visibilitychange',visibility);
     return () => {
       window.removeEventListener('pointerdown',down);
       window.removeEventListener('pointercancel',cancel);
       window.removeEventListener('pointermove',move);
       window.removeEventListener('pointerup',tap);
-      window.removeEventListener('scroll',clear);
+      window.removeEventListener('scroll',scroll);
       document.removeEventListener('pointerleave',clear);
-      document.removeEventListener('visibilitychange',clear);
+      document.removeEventListener('visibilitychange',visibility);
     };
-  },[count,visibleRecords,w,h,size.width,size.height,viewport.width,viewport.height,invalidate]);
+  },[count,visibleRecords,w,h,size.width,size.height,viewport.width,viewport.height,clearHighlight,requestRender]);
 
   useEffect(() => () => { geometry.dispose(); material.dispose(); },[geometry,material]);
 
-  useFrame((_state, delta) => {
+  // Own the single render pass so a 240Hz screen cannot force 240 GPU paints/sec.
+  useFrame((state) => {
+    const now = performance.now();
+    const elapsed = now - lastPaint.current;
+    if (elapsed < frameInterval - .5) { requestRender(); return; }
+    lastPaint.current = now;
+    const delta = Math.min(elapsed / 1000, .05);
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
     if (!pState.stageVisible || document.hidden) { lastScroll.current = pState.scrollY; return; }
-    const scrollDelta = pState.scrollY - (lastScroll.current ?? pState.scrollY);
-    lastScroll.current = pState.scrollY;
+    const scrollPosition = window.scrollY;
+    const scrollDelta = scrollPosition - (lastScroll.current ?? scrollPosition);
+    lastScroll.current = scrollPosition;
     // Scroll carries the same souls downward; stopping gathers them into the shape.
     // Bound anchor jumps and fast flings to a quarter-screen of travel per frame.
     const carry = reduced ? 0 : THREE.MathUtils.clamp(scrollDelta, -size.height * .25, size.height * .25) * viewport.height / size.height * .85;
     transportAge.current = carry ? 0 : transportAge.current + Math.min(delta, .05);
-    const travelling = !reduced && transportAge.current < .12;
+    const travelling = !reduced && transportAge.current < SCROLL_PAUSE_SECONDS;
     flow.current = reduced ? 0 : Math.max(Math.abs(carry) / viewport.height, flow.current * Math.exp(-Math.min(delta, .05) * 8));
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
@@ -399,7 +513,7 @@ export default function HumanInstancedMesh() {
     const pickable = !travelling && ['number','scatter','stats','finale'].includes(mode) && !pState.selectedRecord;
     let pick=-1, distance=140;
 
-    if(pickable) for(let i=0;i<count;i++) {
+    if(pickable && pointer.current.x >= 0 && pointer.current.y >= 0) for(let i=0;i<count;i++) {
       const dx=current.current[i*4]/viewport.width*size.width + size.width/2-pointer.current.x;
       const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
       const d=dx*dx+dy*dy;
@@ -407,6 +521,13 @@ export default function HumanInstancedMesh() {
     }
 
     if(pick!==hovered.current) {
+      const colours = mesh.current.instanceColor;
+      if (colours) {
+        const previous = hovered.current;
+        if (previous >= 0) colours.setXYZ(previous, palette[previous*3], palette[previous*3+1], palette[previous*3+2]);
+        if (pick >= 0) colours.setXYZ(pick, gold.r, gold.g, gold.b);
+        colours.needsUpdate = true;
+      }
       hovered.current=pick;
       useParticleStore.setState({
         hoveredRecord: pick>=0 ? visibleRecords[pick] : null,
@@ -417,8 +538,8 @@ export default function HumanInstancedMesh() {
     for(let i=0;i<count;i++) {
       let tx=targets[i*4], ty=targets[i*4+1], tz=targets[i*4+2], ts=targets[i*4+3];
 
-      current.current[i*4+1] -= carry * (.55 + random(i,12) * .9);
-      current.current[i*4] += Math.sin(random(i,13) * Math.PI * 2) * Math.abs(carry) * .22;
+      current.current[i*4+1] -= carry * transport[i*2];
+      current.current[i*4] += Math.abs(carry) * transport[i*2+1];
       if (travelling) {
         // Re-enter beyond the viewport edge, so souls keep falling through long scrolls.
         if (current.current[i*4+1] < -viewport.height * .6) current.current[i*4+1] += viewport.height * 1.2;
@@ -446,50 +567,18 @@ export default function HumanInstancedMesh() {
         current.current[index]+=diff*(travelling && k < 2 ? 0 : factor);
       }
 
-      dummy.position.set(current.current[i*4],current.current[i*4+1],current.current[i*4+2]);
       const scale = Math.max(.001,current.current[i*4+3]);
-      dummy.scale.set(scale, scale * (1 + flow.current * 6), scale);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i,dummy.matrix);
-
-      // Color styling per mode
-      if (i === pick) {
-        // Highlighting hovered martyr in warm luminous gold
-        color.set('#d4af37');
-      } else if (mode === 'finale') {
-        // Palestinian Flag Palette for «فلسطين»: Red, Green, White, Black
-        const flagTier = i % 4;
-        if (flagTier === 0) {
-          color.set('#e4312b'); // Palestinian Red
-        } else if (flagTier === 1) {
-          color.set('#149954'); // Palestinian Green
-        } else if (flagTier === 2) {
-          color.set('#ffffff'); // Palestinian White
-        } else {
-          color.set('#1e221e'); // Palestinian Black
-        }
-      } else if (mode === 'stats') {
-        // Olive tree palette: trunk/roots vs boughs vs leaves
-        const ratio = i / Math.max(count, 1);
-        if (ratio < 0.28) {
-          color.set(i % 5 === 0 ? '#433b32' : '#3d4438'); // deep bark & earth
-        } else if (ratio < 0.60) {
-          color.set(i % 4 === 0 ? '#4e5b4b' : '#5b6b55'); // olive wood branches
-        } else {
-          color.set(i % 3 === 0 ? '#2d6a4f' : '#40916c'); // living olive leaves
-        }
-      } else if (mode === 'number') {
-        color.set('#3a4437');
-      } else {
-        color.set(i % 17 === 0 ? '#586b53' : '#7d887a');
-      }
-
-      mesh.current.setColorAt(i,color);
+      const matrices = mesh.current.instanceMatrix.array;
+      const m = i*16;
+      // No rotations: scale + translation can be written without Object3D/Quaternion work.
+      matrices[m]=scale; matrices[m+5]=scale*(1+flow.current*6); matrices[m+10]=scale;
+      matrices[m+12]=current.current[i*4]; matrices[m+13]=current.current[i*4+1];
+      matrices[m+14]=current.current[i*4+2]; matrices[m+15]=1;
     }
 
     mesh.current.instanceMatrix.needsUpdate=true;
-    if(mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate=true;
-    if(unsettled) invalidate();
-  });
+    state.gl.render(state.scene, state.camera);
+    if(unsettled) requestRender();
+  }, 1);
   return <instancedMesh ref={mesh} args={[geometry,material,count]} frustumCulled={false} />;
 }

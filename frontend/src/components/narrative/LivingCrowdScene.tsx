@@ -2,7 +2,7 @@
 import { useParticleStore } from '@/lib/particleStore';
 
 export default function LivingCrowdScene() {
-  const sampleSize = useParticleStore(s => s.records.length);
+  const sampleSize = useParticleStore(s => s.particleCount);
   return (
     <section id="crowd" className="chapter crowd" aria-labelledby="crowd-title">
       <div className="chapter-heading">
@@ -25,7 +25,7 @@ export default function LivingCrowdScene() {
         </div>
         <div className="crowd-tag">
           <span className="tag-dot" aria-hidden="true" />
-          <span>{sampleSize.toLocaleString('en-US')} هيئة بشرية تمثل عيّنة من السجلات</span>
+          <span>{sampleSize ? `${sampleSize.toLocaleString('en-US')} هيئة بشرية تمثل عيّنة من السجلات` : 'التشكيل عيّنة من الأسماء المسجّلة'}</span>
         </div>
         <div className="crowd-tag">
           <span className="tag-dot" aria-hidden="true" />
