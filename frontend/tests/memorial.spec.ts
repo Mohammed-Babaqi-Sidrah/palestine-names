@@ -34,6 +34,22 @@ test('real statistics, provenance and narrow layouts', async ({ page }) => {
   await expect(page.getByLabel('الاسم أو اسم العائلة')).toBeVisible();
 });
 
+test('age summaries are whole years while counts and percentages retain precision', async ({ page }) => {
+  await page.route('**/api/memorial', route => route.fulfill({ json: {
+    statistics: { ...statistics, total: 72835, children_under_18: 21637, average_age: 28.7, median_age: 27.5 },
+    records: [record], dataset: { status: 'fallback', origin: 'bundled', record_count: 72835,
+      source_docs: 'https://data.techforpalestine.org/docs/killed-in-gaza/' },
+  } }));
+  await page.goto('/');
+  const cards = page.locator('.stat-trio-card');
+  await expect(cards.nth(0).locator('.trio-number')).toHaveText('21,637');
+  await expect(cards.nth(0).locator('.trio-badge')).toHaveText('29.7٪ من الأسماء المسجّلة');
+  await expect(cards.nth(1).locator('.trio-number')).toHaveText('29');
+  await expect(cards.nth(1).locator('.trio-desc')).toContainText('28 عامًا');
+  await expect(cards.nth(2).locator('.trio-number')).toHaveText('70');
+  await expect(page.locator('.segment-pct').first()).toHaveText('50.0٪');
+});
+
 test('search, clear focus, no results and record dialog', async ({ page }) => {
   await page.goto('/archive');
   const search = page.getByLabel('الاسم أو اسم العائلة');

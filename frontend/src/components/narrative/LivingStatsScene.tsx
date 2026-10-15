@@ -16,6 +16,7 @@ export default function LivingStatsScene() {
   const statistics = useParticleStore(s => s.statistics);
   const status = useParticleStore(s => s.dataStatus);
   const number = (n: number | null | undefined) => n == null ? '—' : n.toLocaleString('en-US');
+  const age = (n: number | null | undefined) => n == null ? '—' : number(Math.round(n));
   const childPercent = statistics?.total ? Math.round(statistics.children_under_18 / statistics.total * 1000) / 10 : null;
   const [activeCohort, setActiveCohort] = useState<string | null>(null);
 
@@ -62,16 +63,16 @@ export default function LivingStatsScene() {
 
             <article className="stat-trio-card">
               <span className="trio-badge">جيل في ريعان شبابه</span>
-              <strong className="trio-number">{number(statistics?.average_age)}</strong>
+              <strong className="trio-number">{age(statistics?.average_age)}</strong>
               <h3 className="trio-title">عامًا متوسط الأعمار</h3>
               <p className="trio-desc">
-                العمر الوسيط <strong>{number(statistics?.median_age)} عامًا</strong> بحسب الأعمار المسجّلة.
+                العمر الوسيط <strong>{age(statistics?.median_age)} عامًا</strong> بحسب الأعمار المسجّلة.
               </p>
             </article>
 
             <article className="stat-trio-card">
               <span className="trio-badge">أكبر عمر مسجّل</span>
-              <strong className="trio-number">{number(statistics?.max_age)}</strong>
+              <strong className="trio-number">{age(statistics?.max_age)}</strong>
               <h3 className="trio-title">عامًا أكبر الشهداء سنًا</h3>
               <p className="trio-desc">
                 الأعمار غير المتاحة: {number(statistics?.unknown_age)} سجل.

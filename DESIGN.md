@@ -46,7 +46,7 @@ Runtime ownership remains in `frontend/src/app/globals.css`. This file mirrors i
 
 ## Typography
 
-Keep the original type roles and scale: IBM Plex Sans Arabic for the opening h1, prose and controls; Amiri for the other headings, poetry and names; Courier New for the original large data figures. Keep the original Latin numerals on those figures. Use whole Arabic runs and zero Arabic tracking; fix shaping without replacing the typeface or visual hierarchy. Latin names use `lang=en` and `dir=ltr`; identifiers and ranges use bidi isolation. Canvas calligraphy waits for the actual Amiri font and has an HTML fallback. Fonts are served locally. Refine the existing circular seal with readable, shorter Arabic inscriptions and the original olive wreath; unique SVG path IDs prevent duplicate-instance collisions.
+Keep the original type roles and scale: IBM Plex Sans Arabic for the opening h1, prose and controls; Amiri for the other headings, poetry and names; Courier New for the original large data figures. Keep the original Latin numerals on those figures. Use whole Arabic runs and zero Arabic tracking; fix shaping without replacing the typeface or visual hierarchy. Latin names use `lang=en` and `dir=ltr`; identifiers and ranges use bidi isolation. Canvas calligraphy waits for the actual Amiri font and has an HTML fallback. Fonts are served locally. Refine the existing circular seal with readable, shorter Arabic inscriptions and a hand-coded open archive book with an olive sprig; unique SVG path IDs prevent duplicate-instance collisions.
 
 ## Layout
 
@@ -58,7 +58,7 @@ Keep the original paper texture, translucency, rules, card borders and shadows. 
 
 ## Shapes
 
-Keep the original component corners, badges, seal and iconography. Keep the existing geometry and vintage paper treatment; shorten the assistant seal inscriptions and remove redundant dossier badges. Reuse the original classes rather than adding replacement skins.
+Keep the original component corners, badges, seal and iconography. Keep the existing geometry and vintage paper treatment. The assistant seal is the scoped exception: fewer rings, a larger open archive book and olive sprig, and legible Arabic arc lettering, drawn directly as SVG paths without generated raster imagery. Reuse the original classes rather than adding replacement skins.
 
 ## Components
 
@@ -77,3 +77,9 @@ Assistant answers use react-markdown and remark-gfm with safe default URL filter
 The user's next feedback asks for visible downward soul-like travel, not only chapter morphing. While scrolling down, transport the same silhouettes downward at varied speeds with gentle lateral drift; reverse the transport when scrolling up. Suspend position gathering during scrolling; souls re-enter beyond the viewport edges during long travel. Once scrolling pauses for 120 ms, gather into the section's complete formation and stop rendering. Bound travel on fast jumps and never apply transport with OS reduced motion. Restore the original main-branch finale anchor (51% desktop / 54% mobile), placing فلسطين behind the closing prose and quote rather than below them. Preserve the approved folio, Markdown, original six shapes and pipeline.
 
 Motion thesis: the focal sequence is souls travelling with the reader and gathering into shared memory. Scroll movement drives transport; chapter changes drive gathering. No autonomous falling loop, extra controls or new libraries. Use the existing single GPU instanced mesh, demand frames while moving/settling, and no spatial travel in reduced motion.
+
+## Age display and assistant seal — 15 October
+
+Round displayed age summaries (average and median) to whole years. Record ages are already whole years from the validated source. Preserve exact counts, decimal percentages and the underlying API statistics. Keep missing ages as unknown and infants as under one year.
+
+Refine only the assistant logo as a custom code-native SVG: preserve the olive ink, circular stamp and existing Arabic inscriptions; remove tiny inner labels and excess concentric rings, and use a clear open book with an olive sprig. The silhouette must remain clear at the existing 88px mobile / 156px desktop sizes. No generated image asset, new logo service, dependencies, page-layout or motion changes.
