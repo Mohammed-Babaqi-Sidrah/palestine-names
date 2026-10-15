@@ -35,7 +35,7 @@ interface ParticleState {
   archiveRecords: Record[];
   mode: SceneMode;
   scrollProgress: number;           // 0–1 overall page scroll
-  scrollY: number;                  // Pixels travelled by the reader, drives soul transport
+  scrollY: number;                  // Reader position; chapter entry drives particle travel
   hoveredId: string | null;         // record ID of hovered human
   hoveredRecord: Record | null;     // full record data for popup
   hoveredScreenPos: { x: number; y: number } | null;

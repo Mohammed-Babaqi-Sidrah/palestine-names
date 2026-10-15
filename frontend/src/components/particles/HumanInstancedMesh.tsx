@@ -4,7 +4,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
 import { particleQuality } from '@/lib/particleQuality';
-const SCROLL_PAUSE_SECONDS = .06;
+import { CHAPTERS } from '@/lib/useScrollStory';
+const CHAPTER_TRAVEL_MS = 900;
 
 // One flat, low-poly silhouette; every body is a single GPU instance.
 function humanGeometry() {
@@ -128,12 +129,10 @@ export default function HumanInstancedMesh() {
   const material = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff', side: THREE.DoubleSide }), []);
   const gold = useMemo(() => new THREE.Color('#d4af37'), []);
   const current = useRef(new Float32Array(2400 * 4));
-  const transport = useMemo(() => Float32Array.from({ length: count * 2 }, (_, k) => k % 2
-    ? Math.sin(random(Math.floor(k / 2),13) * Math.PI * 2) * .22
-    : .55 + random(Math.floor(k / 2),12) * .9), [count]);
-  const lastScroll = useRef<number | null>(null);
-  const flow = useRef(0);
-  const transportAge = useRef(Infinity);
+  const departure = useRef(new Float32Array(2400 * 4));
+  const previousMode = useRef(mode);
+  const initialized = useRef(false);
+  const journey = useRef({ active: false, started: 0, direction: 1 });
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -379,8 +378,12 @@ export default function HumanInstancedMesh() {
         }
       } else if (mode === 'names') {
         color.set(i < Math.max(1, Math.floor(count*.24)) ? '#79563c' : i%3 === 0 ? '#436148' : '#668253');
-      } else if (mode === 'number') {
-        color.set('#3a4437');
+      } else if (mode === 'number' || mode === 'hero') {
+        // Spatial flag bands and the red hoist triangle, across the numeral silhouette.
+        const point = number[i] || [700,175];
+        const x = point[0]/1400, y = point[1]/350;
+        color.set(x < .3*(1-Math.abs(y-.5)*2) ? '#e4312b'
+          : y < 1/3 ? '#1e221e' : y < 2/3 ? '#ffffff' : '#149954');
       } else {
         color.set(i % 17 === 0 ? '#586b53' : '#7d887a');
       }
@@ -389,7 +392,7 @@ export default function HumanInstancedMesh() {
 
     }
     return values;
-  }, [mode, count]);
+  }, [mode, count, number]);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -412,11 +415,19 @@ export default function HumanInstancedMesh() {
   }, [palette]);
   useEffect(() => {
     clearHighlight();
+    if (reduced) journey.current.active = false;
+    else if (previousMode.current !== mode && initialized.current) {
+      departure.current.set(current.current);
+      const before = CHAPTERS.findIndex(chapter => chapter.mode === previousMode.current);
+      const after = CHAPTERS.findIndex(chapter => chapter.mode === mode);
+      journey.current = { active: true, started: performance.now(), direction: after >= before ? 1 : -1 };
+    }
+    previousMode.current = mode;
     requestRender();
-  },[targets,reduced,clearHighlight,requestRender]);
+  },[targets,reduced,mode,clearHighlight,requestRender]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.scrollY!==prev.scrollY || s.chapterProgress!==prev.chapterProgress || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { requestRender(); }
+    if(s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { requestRender(); }
   }),[requestRender]);
 
   useEffect(() => {
@@ -448,8 +459,8 @@ export default function HumanInstancedMesh() {
       if(isInteractive(event.target)) return;
       const stage = useParticleStore.getState();
       if (!stage.stageVisible || stage.selectedRecord) return;
-      if (!stage.reducedMotion && transportAge.current < SCROLL_PAUSE_SECONDS) return;
-      if(!['number','scatter','stats','finale'].includes(useParticleStore.getState().mode)) return;
+      if (!stage.reducedMotion && journey.current.active) return;
+      if(!['number','scatter','names','stats','finale'].includes(useParticleStore.getState().mode)) return;
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
         const dx=current.current[i*4]/viewport.width*size.width + size.width/2-event.clientX;
@@ -467,7 +478,7 @@ export default function HumanInstancedMesh() {
     window.addEventListener('pointercancel',cancel,{passive:true});
     window.addEventListener('pointermove',move,{passive:true});
     window.addEventListener('pointerup',tap,{passive:true});
-    const scroll = () => { clear(); requestRender(); };
+    const scroll = () => { clear(); };
     const visibility = () => { clear(); if (!document.hidden) requestRender(); };
     window.addEventListener('scroll',scroll,{passive:true});
     document.addEventListener('pointerleave',clear);
@@ -494,23 +505,19 @@ export default function HumanInstancedMesh() {
     const delta = Math.min(elapsed / 1000, .05);
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
-    if (!pState.stageVisible || document.hidden) { lastScroll.current = pState.scrollY; return; }
-    const scrollPosition = window.scrollY;
-    const scrollDelta = scrollPosition - (lastScroll.current ?? scrollPosition);
-    lastScroll.current = scrollPosition;
-    // Scroll carries the same souls downward; stopping gathers them into the shape.
-    // Bound anchor jumps and fast flings to a quarter-screen of travel per frame.
-    const carry = reduced ? 0 : THREE.MathUtils.clamp(scrollDelta, -size.height * .25, size.height * .25) * viewport.height / size.height * .85;
-    transportAge.current = carry ? 0 : transportAge.current + Math.min(delta, .05);
-    const travelling = !reduced && transportAge.current < SCROLL_PAUSE_SECONDS;
-    flow.current = reduced ? 0 : Math.max(Math.abs(carry) / viewport.height, flow.current * Math.exp(-Math.min(delta, .05) * 8));
+    if (!pState.stageVisible || document.hidden) return;
+    const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
+    const travelling = !reduced && journey.current.active && progress < 1;
+    if (!travelling) journey.current.active = false;
+    const arrival = 1-(1-progress)**3;
+    const flow = travelling ? Math.sin(progress*Math.PI)*.05 : 0;
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
-    let unsettled=flow.current > .001;
+    let unsettled=travelling;
 
-    // Enable hover picking in number, scatter, stats (tree), and finale (calligraphy)
-    const pickable = !travelling && ['number','scatter','stats','finale'].includes(mode) && !pState.selectedRecord;
+    // The olive sprig is made of real records, just like the other formations.
+    const pickable = !travelling && ['number','scatter','names','stats','finale'].includes(mode) && !pState.selectedRecord;
     let pick=-1, distance=140;
 
     if(pickable && pointer.current.x >= 0 && pointer.current.y >= 0) for(let i=0;i<count;i++) {
@@ -538,17 +545,6 @@ export default function HumanInstancedMesh() {
     for(let i=0;i<count;i++) {
       let tx=targets[i*4], ty=targets[i*4+1], tz=targets[i*4+2], ts=targets[i*4+3];
 
-      current.current[i*4+1] -= carry * transport[i*2];
-      current.current[i*4] += Math.abs(carry) * transport[i*2+1];
-      if (travelling) {
-        // Re-enter beyond the viewport edge, so souls keep falling through long scrolls.
-        if (current.current[i*4+1] < -viewport.height * .6) current.current[i*4+1] += viewport.height * 1.2;
-        if (current.current[i*4+1] > viewport.height * .6) current.current[i*4+1] -= viewport.height * 1.2;
-        if (current.current[i*4] < -viewport.width * .6) current.current[i*4] += viewport.width * 1.2;
-        if (current.current[i*4] > viewport.width * .6) current.current[i*4] -= viewport.width * 1.2;
-        ts = Math.min(ts, size.width < 760 ? .06 : .065);
-      }
-
       // Interpolate in world space, including the anchor, to avoid chapter jumps.
       tx += offsetX;
       ty += offsetY;
@@ -559,24 +555,39 @@ export default function HumanInstancedMesh() {
         tz += 0.45;
       }
 
-      for(let k=0;k<4;k++) {
+      if (travelling) {
+        // A chapter starts one complete journey, independent of further scroll input.
+        // Wrap outside the viewport so every figure travels in the navigation direction.
+        const span = viewport.height*1.3;
+        const startY = departure.current[i*4+1];
+        const direction = journey.current.direction;
+        let distance = (startY-ty)*direction;
+        if (distance < viewport.height*.12) distance += span;
+        let y = startY-direction*distance*arrival;
+        if (y < -span/2) y += span;
+        if (y > span/2) y -= span;
+        current.current[i*4] = THREE.MathUtils.lerp(departure.current[i*4],tx,arrival);
+        current.current[i*4+1] = y;
+        current.current[i*4+2] = THREE.MathUtils.lerp(departure.current[i*4+2],tz,arrival);
+        current.current[i*4+3] = THREE.MathUtils.lerp(departure.current[i*4+3],ts,arrival);
+      } else for(let k=0;k<4;k++) {
         const target=k===0?tx:k===1?ty:k===2?tz:ts, index=i*4+k;
         const diff=target-current.current[index];
         if(Math.abs(diff)>.001) unsettled=true;
-        // Gathering waits for the reader to pause; it must not cancel falling motion.
-        current.current[index]+=diff*(travelling && k < 2 ? 0 : factor);
+        current.current[index]+=diff*factor;
       }
 
       const scale = Math.max(.001,current.current[i*4+3]);
       const matrices = mesh.current.instanceMatrix.array;
       const m = i*16;
       // No rotations: scale + translation can be written without Object3D/Quaternion work.
-      matrices[m]=scale; matrices[m+5]=scale*(1+flow.current*6); matrices[m+10]=scale;
+      matrices[m]=scale; matrices[m+5]=scale*(1+flow*6); matrices[m+10]=scale;
       matrices[m+12]=current.current[i*4]; matrices[m+13]=current.current[i*4+1];
       matrices[m+14]=current.current[i*4+2]; matrices[m+15]=1;
     }
 
     mesh.current.instanceMatrix.needsUpdate=true;
+    initialized.current = true;
     state.gl.render(state.scene, state.camera);
     if(unsettled) requestRender();
   }, 1);

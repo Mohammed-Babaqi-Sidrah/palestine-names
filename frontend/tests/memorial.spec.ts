@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-declare global { interface Window { meshY: number[]; particleProbe: { draws: number; count: number; brown: number; green: number; colorUploads: number } } }
+declare global { interface Window {
+  meshY: number[];
+  meshMatrices: number[];
+  meshFrames: { at: number; positions: number[] }[];
+  meshPalette: number[];
+  particleProbe: { draws: number; count: number; brown: number; green: number; colorUploads: number };
+} }
 
 const record = { id: 'a', ar_name: 'أمل النجار', en_name: 'Amal Najjar', age: 0, dob: '2024-01-01', sex: 'f', update: '10' };
 const statistics = { total: 2, total_with_age: 2, children_under_18: 1, infants_under_1: 1, unknown_age: 0,
@@ -124,7 +130,7 @@ test('mesh stays in the viewport while scrolling and changes formation', async (
   await expect(mesh).toHaveCSS('opacity', '1');
 });
 
-test('scroll carries souls downward then gathers the same formation', async ({ page }) => {
+test('a chapter change carries souls into its shape without more scrolling', async ({ page }) => {
   await page.addInitScript(() => {
     const samples: number[] = [];
     window.meshY = samples;
@@ -148,25 +154,40 @@ test('scroll carries souls downward then gathers the same formation', async ({ p
     window.scrollTo({ top: 180, behavior: 'instant' });
   });
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'number');
-  await expect.poll(async () => Math.min(...await readY())).toBeLessThan(before - .25);
-  await expect.poll(async () => Math.abs((await readY()).at(-1)! - before), { timeout: 5000 }).toBeLessThan(.02);
-  await page.evaluate(async () => {
+  await page.waitForTimeout(350);
+  // Scrolling inside the same chapter must not dislodge its settled shape.
+  expect((await readY()).every(y => Math.abs(y - before) < .01)).toBe(true);
+  await page.evaluate(() => {
     window.meshY.length = 0;
-    for (let i = 0; i < 18; i++) {
-      window.scrollBy({ top: 8, behavior: 'instant' });
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    }
+    const chapter = document.querySelector('#crowd')!;
+    window.scrollTo({ top: chapter.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
   });
-  await expect.poll(async () => Math.min(...await readY())).toBeLessThan(before - .65);
-  await expect.poll(async () => Math.abs((await readY()).at(-1)! - before), { timeout: 5000 }).toBeLessThan(.02);
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
+  const chapterScroll = await page.evaluate(() => window.scrollY);
+  await expect.poll(async () => (await readY()).length).toBeGreaterThan(5);
+  // A single input starts a finite downward journey; it continues while scrollY stays fixed.
+  await page.waitForTimeout(180);
+  const during = (await readY()).at(-1)!;
+  await page.waitForTimeout(1200);
+  const after = (await readY()).at(-1)!;
+  expect(await page.evaluate(() => window.scrollY)).toBe(chapterScroll);
+  expect(Math.min(...await readY())).toBeLessThan(before - .2);
+  expect(Math.abs(after - during)).toBeGreaterThan(.02);
+  const settledUploads = (await readY()).length;
+  await page.waitForTimeout(350);
+  expect((await readY()).length).toBe(settledUploads);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
   await page.evaluate(() => {
     window.meshY.length = 0;
-    window.scrollBy({ top: 120, behavior: 'instant' });
+    const chapter = document.querySelector('#stats')!;
+    window.scrollTo({ top: chapter.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
   });
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'stats');
   await page.waitForTimeout(200);
-  expect(Math.min(...await readY())).toBeGreaterThan(before - .02);
+  const reducedSamples = await readY();
+  expect(reducedSamples.length).toBeGreaterThan(0);
+  expect(reducedSamples.every(y => Math.abs(y - reducedSamples.at(-1)!) < .01)).toBe(true);
 });
 
 test('Palestine stands behind the closing passage at the original centre', async ({ page }) => {
@@ -237,9 +258,96 @@ test('low-resource devices receive a bounded field that stops rendering when idl
     });
   });
   const measured = await page.evaluate(() => window.particleProbe);
-  expect(measured.draws).toBeGreaterThan(10);
-  expect(measured.draws).toBeLessThanOrEqual(40);
+  expect(measured.draws).toBeLessThanOrEqual(2);
   expect(measured.colorUploads).toBe(0);
+  await page.evaluate(() => {
+    window.particleProbe.draws = 0;
+    const chapter = document.querySelector('#crowd')!;
+    window.scrollTo({ top: chapter.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
+  });
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
+  await page.waitForTimeout(1200);
+  const transitionDraws = await page.evaluate(() => window.particleProbe.draws);
+  expect(transitionDraws).toBeGreaterThan(10);
+  expect(transitionDraws).toBeLessThanOrEqual(40);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(transitionDraws);
+});
+
+test('opening number uses all four Palestine flag colors', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.meshPalette = [];
+    for (const method of ['bufferData', 'bufferSubData'] as const) {
+      const original = WebGL2RenderingContext.prototype[method];
+      Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+        const data = args[method === 'bufferData' ? 1 : 2];
+        if (data instanceof Float32Array && data.length === 256 * 3) window.meshPalette = Array.from(data);
+        return Reflect.apply(original, this, args);
+      } });
+    }
+  });
+  await page.route('**/api/memorial', route => route.fulfill({ json: { statistics: { ...statistics, total: 72835 },
+    records: Array.from({ length: 256 }, (_, i) => ({ ...record, id: String(i) })), dataset: { status: 'fallback', record_count: 72835 } } }));
+  await page.goto('/');
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'number');
+  await expect.poll(() => page.evaluate(() => window.meshPalette.length)).toBe(256 * 3);
+  const colors = await page.evaluate(() => {
+    const found = { red: 0, green: 0, white: 0, black: 0 };
+    for (let i = 0; i < window.meshPalette.length; i += 3) {
+      const [r, g, b] = window.meshPalette.slice(i, i + 3);
+      if (r > .1 && r > g * 3 && r > b * 3) found.red++;
+      if (g > .1 && g > r * 2 && g > b * 1.3) found.green++;
+      if (r > .65 && g > .65 && b > .65) found.white++;
+      if (r < .03 && g < .03 && b < .03) found.black++;
+    }
+    return found;
+  });
+  expect(colors.red).toBeGreaterThan(0);
+  expect(colors.green).toBeGreaterThan(0);
+  expect(colors.white).toBeGreaterThan(0);
+  expect(colors.black).toBeGreaterThan(0);
+});
+
+test('olive branch particles reveal names on hover and open records on tap', async ({ page, isMobile }) => {
+  await page.addInitScript(() => {
+    window.meshMatrices = [];
+    for (const method of ['bufferData', 'bufferSubData'] as const) {
+      const original = WebGL2RenderingContext.prototype[method];
+      Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+        const data = args[method === 'bufferData' ? 1 : 2];
+        if (data instanceof Float32Array && data.length === 128 * 16) window.meshMatrices = Array.from(data);
+        return Reflect.apply(original, this, args);
+      } });
+    }
+  });
+  await page.route('**/api/memorial', route => route.fulfill({ json: { statistics,
+    records: Array.from({ length: 128 }, (_, i) => ({ ...record, id: String(i) })), dataset: { status: 'fallback', record_count: 128 } } }));
+  await page.goto('/#declaration');
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'names');
+  await expect.poll(() => page.evaluate(() => window.meshMatrices.length)).toBe(128 * 16);
+  await page.waitForTimeout(1600);
+  const particle = await page.evaluate(() => {
+    // Project the uploaded transforms through this canvas's orthographic camera (zoom100).
+    for (let i = 0; i < window.meshMatrices.length; i += 16) {
+      const x = window.innerWidth / 2 + window.meshMatrices[i + 12] * 100;
+      const y = window.innerHeight / 2 - window.meshMatrices[i + 13] * 100;
+      if (x < 20 || x > window.innerWidth - 20 || y < 120 || y > window.innerHeight - 30) continue;
+      const target = document.elementFromPoint(x, y);
+      if (target && !target.closest('button, a, input, select, textarea, .one-record, .card, [role="button"]')) return { x, y };
+    }
+    return null;
+  });
+  expect(particle, 'a visible olive particle outside the record card').not.toBeNull();
+  if (isMobile) {
+    await page.touchscreen.tap(particle!.x, particle!.y);
+  } else {
+    await page.mouse.move(particle!.x, particle!.y);
+    await expect(page.locator('.particle-memorial-pill')).toContainText('أمل النجار');
+    await page.mouse.click(particle!.x, particle!.y);
+  }
+  await expect(page.getByRole('dialog')).toContainText('أمل النجار');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
 test('one name has a brown-and-green olive branch behind its readable record', async ({ page }) => {

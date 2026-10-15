@@ -35,10 +35,14 @@ The user wants the mesh to accompany scrolling, form the existing shapes, remove
 - Render safe Markdown with react-markdown and remark-gfm: Arabic prose, headings, lists, tables and links; skip raw HTML and unsafe URLs, avoid remote images, isolate code and allow table overflow inside the card.
 - First prove the existing failures with browser regressions, then verify the fixes on desktop/mobile. Run lint, types, build and existing pipeline tests. Capture the complete experience once, make a bounded correction pass, update this PR and show the live result.
 
-## Scroll transport follow-up
+## Earlier scroll transport follow-up (superseded by chapter-entry clarification below)
 
 Move the same souls downward at varied speeds while the reader scrolls, with subtle lateral drift and brief vertical trails. Suspend gathering during scrolling; re-enter beyond the viewport edge during long travel, then gather into the current shape after a 60 ms pause. Suppress figure picking during travel. Use actual scroll displacement, bound fast jumps, reverse transport with upward scrolling, skip it for reduced motion and stop demand rendering after settling. Restore the main-branch finale centre (51% desktop / 54% mobile) behind the closing passage. Regressions inspect real GPU instance positions, not only chapter attributes; verify downward travel, gathering, reduced-motion bypass and finale placement.
 
 ## Resource budget and olive sprig — 15 October user feedback
 
 Hold shapes still when idle. Reuse colour/transport buffers and simple matrices, cap actual paints independently of screen refresh rate, lower pixel density and choose a smaller sample on devices reporting limited resources. Lazy-load Markdown answers, preserve exact source data and report the actual rendered sample. Replace only the one-name side formations with a curved brown stem and green olive leaves behind the existing record card. Measure production scrolling before/after under the same desktop and throttled-mobile conditions, verify actual WebGL budgets/colours and keep the complete browser suite passing. Results and limitations: [particle-performance.md](particle-performance.md).
+
+## Chapter entry, declaration hover and flag number — latest clarification
+
+Hold the formation while scrolling within a section. Entering the next chapter triggers a complete 900 ms downward passage into its shape, independent of further input; reverse on upward chapter navigation, rebase interruptions from the current pose and snap for reduced motion. Remove displacement/pause gating from every scroll. Enable declaration particles in the shared hover/tap paths while preserving control exclusions and drag protection. Give the opening numeral the existing Palestinian flag palette in spatial bands and a red hoist triangle. Prove the old behavior fails these requirements, then verify all 30 desktop/mobile cases, resource limits and the unchanged page composition.

@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer now budgets work independently of the display refresh rate. Shapes hold still after gathering; scrolling wakes the same mesh, reads the current scroll position and carries its figures downward. Gathering begins after a 60 ms pause. Reduced motion skips travel.
+The renderer budgets work independently of the display refresh rate. Shapes hold still while reading and scrolling within a chapter. Entering a different chapter starts one complete 900 ms journey into its shape, without waiting for more scrolling or a pause. Reduced motion skips travel.
 
 ## Resource limits
 
@@ -12,9 +12,9 @@ The renderer now budgets work independently of the display refresh rate. Shapes 
 
 These hints are conservative, not a GPU benchmark. Actual count also depends on available records, and the caption reports that rendered sample. The full archive and exact statistics remain independent of the visual budget. WebGL-free reading/search and OS reduced motion remain available.
 
-One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and transport randomness are cached; colour uploads occur on formation/highlight changes, rather than every frame. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
+One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and chapter-departure positions are cached; colour uploads occur on formation/highlight changes, rather than every frame. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
 
-## Before and after
+## Renderer optimization at commit 4c737b5
 
 Baseline: commit `e6ddfe3`. Same production build mode, local API/snapshot, Chrome, cold browser contexts, DPR 2, two runs per case. Desktop: 1440 × 1000. Mobile simulation: 390 × 844 with touch and **4× CPU throttling**, without overriding hardware hints (1,000 figures). Each run measures a 3.5-second continuous native scroll at 0.55 px/ms. Chrome CDP supplies scripting/task duration; WebGL instrumentation counts actual instanced draws and buffer uploads. The host's browser RAF ran at approximately 240 Hz; browser RAF intervals are **not** particle paint cadence.
 
@@ -32,7 +32,7 @@ Final individual scripting samples were 219.56 / 217.69 ms desktop and 951.83 / 
 
 First particle draw stayed within roughly the same range: baseline 450–497 ms desktop / 1371–1410 ms mobile; final 451–547 ms / 1412–1483 ms. Smaller initial JavaScript is demonstrated; faster first paint is **not** established by this test. This is a controlled local comparison, not real-user Core Web Vitals, network testing, battery measurement or a promise of a particular frame rate on every device.
 
-## Experiment ledger
+## Experiment ledger at commit 4c737b5
 
 | Attempt | Measurement | Decision |
 | --- | --- | --- |
@@ -47,4 +47,12 @@ No backend or data-pipeline change was needed. The existing memorial endpoint al
 
 `frontend/tests/memorial.spec.ts` instruments real WebGL calls. A device reporting two cores / 2 GB receives 600 instances, stops drawing at idle, stays within its scroll paint budget and sends no repeated colour uploads within one formation. The olive-branch test verifies both wood and leaf colours while retaining the readable record/dialog. Both new tests failed against the previous production build before implementation.
 
-The complete 26-case desktop/mobile suite passes, including actual downward travel, gathering, reduced motion, WebGL fallback, finale alignment, safe Markdown and archive interactions. Additional local browser checks pass for hover-colour restoration, resize, hidden/resumed rendering and WebGL context loss/restoration. Final desktop/mobile captures have no uncaught page errors or horizontal overflow. Lint, TypeScript, production build, strict UI audit and design-token lint pass.
+At that revision the complete 26-case desktop/mobile suite passed, including actual downward travel, gathering, reduced motion, WebGL fallback, finale alignment, safe Markdown and archive interactions. Additional local browser checks passed for hover-colour restoration, resize, hidden/resumed rendering and WebGL context loss/restoration. Desktop/mobile captures had no uncaught page errors or horizontal overflow. Lint, TypeScript, production build, strict UI audit and design-token lint passed.
+
+## Follow-up: chapter entry, hover and flag colours
+
+The user's clarification replaces continuous scroll-driven displacement with finite chapter journeys. Within-chapter scrolling no longer wakes the renderer. Chapter entry snapshots the current pose, carries figures downward and assembles the next shape; upward navigation reverses travel and a new chapter can interrupt from the current pose. The 900 ms clock completes even after a single scroll input. Reduced motion cancels it and snaps. Declaration mode now participates in both hover and tap picking; controls, record cards and drag gestures remain excluded. The opening numeral uses the existing flag palette in spatial black/white/green bands with a red triangle.
+
+The same two-run 3.5-second production profile now measures 142.08 / 151.91 ms scripting and 84 / 85 draws on desktop; 640.85 / 655.36 ms and 62 / 62 draws with mobile CPU throttling. Mean buffer uploads are 13.04 MB desktop / 3.99 MB mobile. Initial encoded JavaScript is 379,674 bytes and settled idle draws remain zero. This saves additional work by implementing the requested stillness between chapters; it does not demonstrate a faster render of identical motion. The probe's time from the *first within-chapter scroll* to the first draw now includes intentionally waiting until chapter entry, so it must not be interpreted as input latency.
+
+All 30 desktop/mobile browser cases pass. Eight focused cases failed against the preceding production build before these changes, reproducing missing declaration hover/tap, the monochrome number, within-chapter displacement and excess paints. The updated checks require stillness within a chapter, visible downward travel continuing without more input, eventual idle stop, the limited-device paint cap, all four flag colours, and working olive-branch hover/tap. This supersedes the older test that required displacement on every scroll. Existing archive, Markdown, age, fallback and reduced-motion checks remain green.
