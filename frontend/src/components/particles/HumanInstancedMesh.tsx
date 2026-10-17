@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
 import { particleQuality } from '@/lib/particleQuality';
 const CHAPTER_TRAVEL_MS = 900;
+const FLAG = { red: '#a52b28', green: '#1c6840', white: '#bbb7ad', black: '#151a16' };
 
 // One flat, low-poly silhouette; every body is a single GPU instance.
 function humanGeometry() {
@@ -132,6 +133,11 @@ export default function HumanInstancedMesh() {
   const previousMode = useRef(mode);
   const initialized = useRef(false);
   const journey = useRef({ active: false, started: 0 });
+  const lastScroll = useRef<number | null>(null);
+  const scrollFlow = useRef(0);
+  const drift = useMemo(() => Float32Array.from({ length: count*2 }, (_, k) => k%2
+    ? (random(Math.floor(k/2),13)-.5)*.16
+    : .8+random(Math.floor(k/2),12)*.4), [count]);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -357,13 +363,13 @@ export default function HumanInstancedMesh() {
         // Palestinian Flag Palette for «فلسطين»: Red, Green, White, Black
         const flagTier = i % 4;
         if (flagTier === 0) {
-          color.set('#e4312b'); // Palestinian Red
+          color.set(FLAG.red);
         } else if (flagTier === 1) {
-          color.set('#149954'); // Palestinian Green
+          color.set(FLAG.green);
         } else if (flagTier === 2) {
-          color.set('#ffffff'); // Palestinian White
+          color.set(FLAG.white);
         } else {
-          color.set('#1e221e'); // Palestinian Black
+          color.set(FLAG.black);
         }
       } else if (mode === 'stats') {
         // Olive tree palette: trunk/roots vs boughs vs leaves
@@ -381,8 +387,8 @@ export default function HumanInstancedMesh() {
         // Spatial flag bands and the red hoist triangle, across the numeral silhouette.
         const point = number[i] || [700,175];
         const x = point[0]/1400, y = point[1]/350;
-        color.set(x < .3*(1-Math.abs(y-.5)*2) ? '#e4312b'
-          : y < 1/3 ? '#1e221e' : y < 2/3 ? '#ffffff' : '#149954');
+        color.set(x < .3*(1-Math.abs(y-.5)*2) ? FLAG.red
+          : y < 1/3 ? FLAG.black : y < 2/3 ? FLAG.white : FLAG.green);
       } else {
         color.set(i % 17 === 0 ? '#586b53' : '#7d887a');
       }
@@ -424,7 +430,7 @@ export default function HumanInstancedMesh() {
   },[targets,reduced,mode,clearHighlight,requestRender]);
 
   useEffect(() => useParticleStore.subscribe((s,prev) => {
-    if(s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { requestRender(); }
+    if(s.scrollY!==prev.scrollY || s.selectedRecord!==prev.selectedRecord || s.mode!==prev.mode || s.stageX!==prev.stageX || s.stageY!==prev.stageY || s.stageVisible!==prev.stageVisible) { requestRender(); }
   }),[requestRender]);
 
   useEffect(() => {
@@ -450,32 +456,47 @@ export default function HumanInstancedMesh() {
       requestRender();
     };
 
-    const tap = (event: PointerEvent) => {
-      if (!gesture.current || Math.hypot(event.clientX - gesture.current.x, event.clientY - gesture.current.y) > 8 || Math.abs(window.scrollY - gesture.current.scroll) > 8) return;
-      gesture.current = null;
-      if(isInteractive(event.target)) return;
-      const stage = useParticleStore.getState();
-      if (!stage.stageVisible || stage.selectedRecord) return;
-      if (!stage.reducedMotion && journey.current.active) return;
-      if(!['number','scatter','names','stats','finale'].includes(useParticleStore.getState().mode)) return;
+    const nearest = (x: number, y: number) => {
+      const retained = hovered.current;
+      if (retained >= 0 && retained < count) {
+        const dx=current.current[retained*4]/viewport.width*size.width+size.width/2-x;
+        const dy=size.height/2-current.current[retained*4+1]/viewport.height*size.height-y;
+        if (dx*dx+dy*dy<400) return visibleRecords[retained];
+      }
       let index=-1, distance=144;
       for(let i=0;i<count;i++) {
-        const dx=current.current[i*4]/viewport.width*size.width + size.width/2-event.clientX;
-        const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-event.clientY;
+        const dx=current.current[i*4]/viewport.width*size.width + size.width/2-x;
+        const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-y;
         const d=dx*dx+dy*dy;
         if(d<distance) { distance=d; index=i; }
       }
-      if(index>=0 && visibleRecords[index]) useParticleStore.setState({ selectedRecord:visibleRecords[index] });
+      return index>=0 ? visibleRecords[index] : null;
     };
-
-    const gesture = { current: null as { x: number; y: number; scroll: number } | null };
-    const down = (event: PointerEvent) => { gesture.current = { x: event.clientX, y: event.clientY, scroll: window.scrollY }; };
+    const gesture = { current: null as { x: number; y: number; scroll: number; blocked: boolean; record: ReturnType<typeof nearest> } | null };
+    const down = (event: PointerEvent) => {
+      const blocked = isInteractive(event.target);
+      gesture.current = { x: event.clientX, y: event.clientY, scroll: window.scrollY, blocked,
+        record: blocked ? null : nearest(event.clientX,event.clientY) };
+    };
+    const tap = (event: PointerEvent) => {
+      const pressed = gesture.current;
+      gesture.current = null;
+      if (!pressed || pressed.blocked || Math.hypot(event.clientX-pressed.x,event.clientY-pressed.y)>8 || Math.abs(window.scrollY-pressed.scroll)>8 || isInteractive(event.target)) return;
+      const stage = useParticleStore.getState();
+      if (!stage.stageVisible || stage.selectedRecord) return;
+      // Remember the soul pressed, even if it drifts before the finger lifts.
+      const record = pressed.record || nearest(event.clientX,event.clientY);
+      if (record) useParticleStore.setState({ selectedRecord: record });
+    };
     const cancel = () => { gesture.current = null; };
     window.addEventListener('pointerdown',down,{passive:true});
     window.addEventListener('pointercancel',cancel,{passive:true});
     window.addEventListener('pointermove',move,{passive:true});
     window.addEventListener('pointerup',tap,{passive:true});
-    const scroll = () => { clear(); };
+    const scroll = () => {
+      if (pointer.current.x >= 0 && isInteractive(document.elementFromPoint(pointer.current.x,pointer.current.y))) clear();
+      requestRender();
+    };
     const visibility = () => { clear(); if (!document.hidden) requestRender(); };
     window.addEventListener('scroll',scroll,{passive:true});
     document.addEventListener('pointerleave',clear);
@@ -502,7 +523,14 @@ export default function HumanInstancedMesh() {
     const delta = Math.min(elapsed / 1000, .05);
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
-    if (!pState.stageVisible || document.hidden) return;
+    if (!pState.stageVisible || document.hidden) { lastScroll.current = window.scrollY; return; }
+    const scrollPosition = window.scrollY;
+    const scrollDelta = THREE.MathUtils.clamp(scrollPosition-(lastScroll.current ?? scrollPosition),-size.height*.25,size.height*.25);
+    lastScroll.current = scrollPosition;
+    // A bounded current flows downward with scrolling, while the field stays suspended.
+    scrollFlow.current = reduced ? 0 : THREE.MathUtils.clamp(scrollFlow.current+scrollDelta*viewport.height/size.height*.25,-viewport.height*.1,viewport.height*.1)
+      * Math.exp(-delta*(scrollDelta ? 1.2 : 7));
+    if (Math.abs(scrollFlow.current)<.001) scrollFlow.current=0;
     const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
     const travelling = !reduced && journey.current.active && progress < 1;
     if (!travelling) journey.current.active = false;
@@ -511,17 +539,25 @@ export default function HumanInstancedMesh() {
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
-    let unsettled=travelling;
+    let unsettled=travelling || scrollFlow.current!==0;
 
     // The olive sprig is made of real records, just like the other formations.
-    const pickable = !travelling && ['number','scatter','names','stats','finale'].includes(mode) && !pState.selectedRecord;
+    const pickable = !pState.selectedRecord;
     let pick=-1, distance=140;
 
-    if(pickable && pointer.current.x >= 0 && pointer.current.y >= 0) for(let i=0;i<count;i++) {
-      const dx=current.current[i*4]/viewport.width*size.width + size.width/2-pointer.current.x;
-      const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
-      const d=dx*dx+dy*dy;
-      if(d<distance) {distance=d;pick=i;}
+    if(pickable && pointer.current.x >= 0 && pointer.current.y >= 0) {
+      const previous = hovered.current;
+      if (previous >= 0 && previous < count) {
+        const dx=current.current[previous*4]/viewport.width*size.width+size.width/2-pointer.current.x;
+        const dy=size.height/2-current.current[previous*4+1]/viewport.height*size.height-pointer.current.y;
+        if (dx*dx+dy*dy<400) pick=previous;
+      }
+      if (pick < 0) for(let i=0;i<count;i++) {
+        const dx=current.current[i*4]/viewport.width*size.width + size.width/2-pointer.current.x;
+        const dy=size.height/2-current.current[i*4+1]/viewport.height*size.height-pointer.current.y;
+        const d=dx*dx+dy*dy;
+        if(d<distance) {distance=d;pick=i;}
+      }
     }
 
     if(pick!==hovered.current) {
@@ -545,6 +581,8 @@ export default function HumanInstancedMesh() {
       // Interpolate in world space, including the anchor, to avoid chapter jumps.
       tx += offsetX;
       ty += offsetY;
+      tx += scrollFlow.current*drift[i*2+1];
+      ty -= scrollFlow.current*drift[i*2];
 
       // Hover feedback: smooth elevation and scale
       if(i===pick) {
@@ -552,13 +590,15 @@ export default function HumanInstancedMesh() {
         tz += 0.45;
       }
 
-      if (travelling) {
+      if (travelling && i!==pick) {
         // Morph continuously towards the incoming section's live position, without a wrap.
         current.current[i*4] = THREE.MathUtils.lerp(departure.current[i*4],tx,arrival);
         current.current[i*4+1] = THREE.MathUtils.lerp(departure.current[i*4+1],ty,arrival);
         current.current[i*4+2] = THREE.MathUtils.lerp(departure.current[i*4+2],tz,arrival);
         current.current[i*4+3] = THREE.MathUtils.lerp(departure.current[i*4+3],ts,arrival);
       } else for(let k=0;k<4;k++) {
+        // Hold the chosen soul under the pointer so its name can be read during flow.
+        if (i===pick && k<2) continue;
         const target=k===0?tx:k===1?ty:k===2?tz:ts, index=i*4+k;
         const diff=target-current.current[index];
         if(Math.abs(diff)>.001) unsettled=true;

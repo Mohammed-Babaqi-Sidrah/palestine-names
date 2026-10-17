@@ -111,30 +111,26 @@ test('automatic reduced motion and WebGL fallback without a motion control', asy
   await expect(page.getByRole('link', { name: 'البحث في السجلات' })).toBeAttached();
 });
 
-test('formation anchors move with their sections while changing shape', async ({ page }) => {
+test('formations stay suspended at their approved viewport centres between sections', async ({ page }) => {
   await page.goto('/');
   const mesh = page.locator('#human-particle-canvas');
   await expect(mesh).toHaveAttribute('data-scene', 'number');
   const center = Number(await mesh.getAttribute('data-center-y'));
   await page.evaluate(() => window.scrollTo({ top: 180, behavior: 'instant' }));
-  await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeCloseTo(center - 180, 0);
+  await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeCloseTo(center, 0);
   await expect(mesh).toHaveCSS('opacity', '1');
   await page.locator('#crowd').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
   await expect(mesh).toHaveAttribute('data-scene', 'scatter');
   await expect(mesh).toHaveCSS('opacity', '1');
+  const crowdCenter = Number(await mesh.getAttribute('data-center-y'));
   await page.evaluate(() => window.scrollBy({ top: 250, behavior: 'instant' }));
-  const crowdCenter = await page.locator('#crowd').evaluate(el => {
-    const rect = el.getBoundingClientRect();
-    // Long chapters hold the formation while filling the viewport, then carry it out with their edge.
-    return Math.max(rect.top, Math.min(0, rect.bottom - window.innerHeight)) + window.innerHeight * .53;
-  });
   await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeCloseTo(crowdCenter, 0);
   await page.locator('#stats').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
   await expect(mesh).toHaveAttribute('data-scene', 'stats');
   await expect(mesh).toHaveCSS('opacity', '1');
 });
 
-test('particles travel with section content and settle continuously after one scroll', async ({ page }) => {
+test('suspended souls drift gently downward with scroll input and rest when it stops', async ({ page }) => {
   await page.addInitScript(() => {
     const samples: number[] = [];
     window.meshY = samples;
@@ -158,18 +154,14 @@ test('particles travel with section content and settle continuously after one sc
     window.scrollTo({ top: 180, behavior: 'instant' });
   });
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'number');
-  // The actual uploaded transform follows its section upward by 180px, not just a DOM attribute.
-  await expect.poll(async () => (await readY()).at(-1) ?? before, { timeout: 3000 }).toBeCloseTo(before + 1.8, 2);
-  await page.waitForTimeout(300);
-  const scrolled = (await readY()).at(-1)!;
-  await page.evaluate(() => {
-    window.meshY.length = 0;
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  });
-  // Reversing the reader's scroll returns the same figure down with its section.
-  await expect.poll(async () => (await readY()).at(-1) ?? scrolled, { timeout: 3000 }).toBeCloseTo(before, 2);
-  expect(scrolled - (await readY()).at(-1)!).toBeCloseTo(1.8, 2);
-  await page.waitForTimeout(300);
+  // World Y decreases when a soul drifts down. The impulse stays small rather than carrying the page away.
+  await expect.poll(async () => Math.min(before, ...await readY())).toBeLessThan(before - .04);
+  expect(Math.min(...await readY())).toBeGreaterThan(before - .9);
+  await expect.poll(async () => (await readY()).at(-1) ?? before, { timeout: 4000 }).toBeCloseTo(before, 2);
+  await page.waitForTimeout(400);
+  const restingUploads = (await readY()).length;
+  await page.waitForTimeout(350);
+  expect((await readY()).length).toBe(restingUploads);
   const departure = (await readY()).at(-1)!;
   await page.evaluate(() => {
     window.meshY.length = 0;
@@ -195,16 +187,15 @@ test('particles travel with section content and settle continuously after one sc
   expect((await readY()).length).toBe(settledUploads);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
+  const reducedBefore = (await readY()).at(-1)!;
   await page.evaluate(() => {
     window.meshY.length = 0;
-    const chapter = document.querySelector('#stats')!;
-    window.scrollTo({ top: chapter.getBoundingClientRect().top + window.scrollY, behavior: 'instant' });
+    window.scrollBy({ top: 120, behavior: 'instant' });
   });
-  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'stats');
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
   await page.waitForTimeout(200);
   const reducedSamples = await readY();
-  expect(reducedSamples.length).toBeGreaterThan(0);
-  expect(reducedSamples.every(y => Math.abs(y - reducedSamples.at(-1)!) < .01)).toBe(true);
+  expect(reducedSamples.every(y => Math.abs(y - reducedBefore) < .02)).toBe(true);
 });
 
 test('Palestine stands behind the closing passage at the original centre', async ({ page }) => {
@@ -214,10 +205,8 @@ test('Palestine stands behind the closing passage at the original centre', async
   await page.evaluate(() => document.fonts.ready);
   const viewport = page.viewportSize()!;
   await expect.poll(() => page.evaluate(() => {
-    const rect = document.querySelector('#finale')!.getBoundingClientRect();
-    const offset = Math.max(rect.top, Math.min(0, rect.bottom - window.innerHeight));
     const center = Number(document.querySelector('#human-particle-canvas')!.getAttribute('data-center-y'));
-    return (center - offset) / window.innerHeight;
+    return center / window.innerHeight;
   })).toBeCloseTo(viewport.width < 760 ? .54 : .51, 2);
   const bounds = await page.locator('#finale').evaluate(el => ({
     top: el.querySelector('.finale-lead-block')!.getBoundingClientRect().top,
@@ -226,6 +215,8 @@ test('Palestine stands behind the closing passage at the original centre', async
   }));
   expect(bounds.y).toBeGreaterThan(bounds.top);
   expect(bounds.y).toBeLessThan(bounds.bottom);
+  await expect(page.getByText('هؤلاء مَن وُثِّقَت أسماؤهم… وليسوا كلَّ مَن فقدنا.', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
 test('assistant renders Arabic Markdown and rejects executable content', async ({ page }) => {
@@ -302,7 +293,7 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(transitionDraws);
 });
 
-test('opening number uses all four Palestine flag colors', async ({ page }) => {
+test('opening number uses four darker Palestine flag colors without luminous white', async ({ page }) => {
   await page.addInitScript(() => {
     window.meshPalette = [];
     for (const method of ['bufferData', 'bufferSubData'] as const) {
@@ -325,7 +316,8 @@ test('opening number uses all four Palestine flag colors', async ({ page }) => {
       const [r, g, b] = window.meshPalette.slice(i, i + 3);
       if (r > .1 && r > g * 3 && r > b * 3) found.red++;
       if (g > .1 && g > r * 2 && g > b * 1.3) found.green++;
-      if (r > .65 && g > .65 && b > .65) found.white++;
+      // The parchment-white band is a muted warm neutral, not pure luminous white.
+      if (r > .35 && g > .35 && b > .3 && r / b < 1.5) found.white++;
       if (r < .03 && g < .03 && b < .03) found.black++;
     }
     return found;
@@ -334,6 +326,108 @@ test('opening number uses all four Palestine flag colors', async ({ page }) => {
   expect(colors.green).toBeGreaterThan(0);
   expect(colors.white).toBeGreaterThan(0);
   expect(colors.black).toBeGreaterThan(0);
+  expect(await page.evaluate(() => Math.max(...window.meshPalette))).toBeLessThan(.6);
+  await expect(page.locator('#human-particle-canvas canvas')).toHaveCSS('filter', 'none');
+});
+
+test('floating souls stay interactive across a chapter gap and in the quiet field', async ({ page, isMobile }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'hardwareConcurrency', { value: 2 });
+    Object.defineProperty(navigator, 'deviceMemory', { value: 2 });
+    window.meshMatrices = [];
+    window.meshFrames = [];
+    for (const method of ['bufferData', 'bufferSubData'] as const) {
+      const original = WebGL2RenderingContext.prototype[method];
+      Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
+        const data = args[method === 'bufferData' ? 1 : 2];
+        if (data instanceof Float32Array && data.length === 128 * 16) {
+          window.meshMatrices = Array.from(data);
+          window.meshFrames.push({ at: performance.now(), positions: window.meshMatrices });
+          if (window.meshFrames.length > 2) window.meshFrames.shift();
+        }
+        return Reflect.apply(original, this, args);
+      } });
+    }
+  });
+  await page.route('**/api/memorial', route => route.fulfill({ json: { statistics,
+    records: Array.from({ length: 128 }, (_, i) => ({ ...record, id: String(i), ar_name: `${record.ar_name} ${i}` })), dataset: { status: 'fallback', record_count: 128 } } }));
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => window.meshMatrices.length)).toBe(128 * 16);
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator('#stats').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'stats');
+  await page.waitForTimeout(1600);
+  const pickParticle = () => page.evaluate(() => {
+    const previous = window.meshFrames.at(-2)?.positions ?? window.meshMatrices;
+    const candidates = [];
+    for (let i = 0; i < window.meshMatrices.length; i += 16) {
+      const x = window.innerWidth / 2 + window.meshMatrices[i + 12] * 100;
+      const y = window.innerHeight / 2 - window.meshMatrices[i + 13] * 100;
+      if (x < 20 || x > window.innerWidth - 20 || y < 120 || y > window.innerHeight - 30) continue;
+      const target = document.elementFromPoint(x, y);
+      if (!target || target.closest('button, a, input, select, textarea, .stat-trio-card, .generations-spectrum-container, .stats-bottom-ribbon, .one-record, .card, .chat-interface, .archivist-input-wrap, [role="button"]')) continue;
+      const movement = Math.hypot(window.meshMatrices[i + 12] - previous[i + 12], window.meshMatrices[i + 13] - previous[i + 13]);
+      candidates.push({ index: i, x, y, movement });
+    }
+    return candidates.sort((a, b) => a.movement - b.movement)[0] ?? null;
+  });
+  const transitionStart = await page.locator('#archivist').evaluate(el => {
+    const started = performance.now();
+    // Both chapters remain on screen; the incoming quiet field has just become active.
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - window.innerHeight * .35, behavior: 'instant' });
+    return started;
+  });
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'archivist');
+  await expect.poll(() => page.evaluate(() => window.meshFrames.at(-1)!.at)).toBeGreaterThan(transitionStart);
+  const floating = await pickParticle();
+  expect(floating, 'a visible soul between the two chapters').not.toBeNull();
+  let offeredName: string | null = null;
+  if (isMobile) {
+    await page.touchscreen.tap(floating!.x, floating!.y);
+  } else {
+    await page.mouse.move(floating!.x, floating!.y);
+    await expect(page.locator('.particle-memorial-pill')).toContainText('أمل النجار', { timeout: 350 });
+    // Identify the soul actually offered to the reader if adjacent figures overlap during the morph.
+    offeredName = await page.locator('.pill-name').textContent();
+    const highlighted = Number(offeredName!.split(' ').at(-1)) * 16;
+    const pinned = await page.evaluate(index => window.meshMatrices.slice(index + 12, index + 14), highlighted);
+    await page.waitForTimeout(150);
+    const held = await page.evaluate(index => window.meshMatrices.slice(index + 12, index + 14), highlighted);
+    expect(Math.hypot(held[0] - pinned[0], held[1] - pinned[1]) * 100).toBeLessThan(3);
+    const retainedPoint = await page.evaluate(({ x, y }) => {
+      for (const [dx, dy] of [[15, 0], [-15, 0], [0, 15], [0, -15]]) {
+        const next = { x: x + dx, y: y + dy };
+        if (next.x < 20 || next.x > window.innerWidth - 20 || next.y < 120 || next.y > window.innerHeight - 30) continue;
+        const target = document.elementFromPoint(next.x, next.y);
+        if (target && !target.closest('button, a, input, select, textarea, .stat-trio-card, .generations-spectrum-container, .stats-bottom-ribbon, .one-record, .card, .chat-interface, .archivist-input-wrap, [role="button"]')) return next;
+      }
+      return null;
+    }, floating!);
+    expect(retainedPoint, 'space to move inside the retained hover radius').not.toBeNull();
+    await page.mouse.move(retainedPoint!.x, retainedPoint!.y);
+    await expect(page.locator('.pill-name')).toHaveText(offeredName!);
+    await page.mouse.click(retainedPoint!.x, retainedPoint!.y);
+  }
+  await expect(page.getByRole('dialog')).toContainText('أمل النجار', { timeout: 350 });
+  if (offeredName) await expect(page.getByRole('dialog').getByRole('heading', { name: offeredName, exact: true })).toBeVisible();
+  expect(await page.evaluate(() => performance.now()) - transitionStart).toBeLessThan(800);
+  if (isMobile) await page.touchscreen.tap(4, 4);
+  else await page.mouse.click(4, 4);
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+
+  await page.locator('#archivist').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
+  await page.waitForTimeout(1600);
+  const quiet = await pickParticle();
+  expect(quiet, 'the quiet field retains individual records').not.toBeNull();
+  if (isMobile) await page.touchscreen.tap(quiet!.x, quiet!.y);
+  else {
+    await page.mouse.move(quiet!.x, quiet!.y);
+    await expect(page.locator('.particle-memorial-pill')).toContainText('أمل النجار');
+    await page.mouse.click(quiet!.x, quiet!.y);
+  }
+  await expect(page.getByRole('dialog')).toContainText('أمل النجار');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
 test('olive branch particles reveal names on hover and open records on tap', async ({ page, isMobile }) => {

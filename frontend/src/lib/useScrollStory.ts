@@ -24,7 +24,7 @@ export function useScrollStory() {
       }
       const section = document.getElementById(active.id);
       const rect = section?.getBoundingClientRect();
-      // Keep the approved composition, but let it enter/leave with its section.
+      // The souls stay suspended in the viewport while chapters scroll behind them.
       const vw = window.innerWidth;
       const mobile = vw < 760;
       let x = .5, y = .5, width = 1, height = .8;
@@ -37,15 +37,13 @@ export function useScrollStory() {
         y = mobile ? .54 : .51; height = .5;
       }
       const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * .3))) : 0;
-      // Pin only while a long section fills the viewport; follow its edges between chapters.
-      const sectionOffset = rect ? Math.max(rect.top, Math.min(0, rect.bottom-vh)) : 0;
       const scrollHeight = Math.max(1, document.documentElement.scrollHeight - vh);
       useParticleStore.setState({
         mode: active.mode, chapterProgress: progress,
         scrollProgress: Math.max(0, Math.min(1, window.scrollY / scrollHeight)),
         scrollY: window.scrollY,
         stageWidth: vw * width, stageHeight: vh * height,
-        stageX: vw * x, stageY: sectionOffset + vh * y,
+        stageX: vw * x, stageY: vh * y,
         stageVisible: true,
       });
     };

@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer budgets work independently of the display refresh rate. Shapes hold still while reading, then enter/leave with the section's edges as the page scrolls. A long section holds its composition only while it fills the viewport. Chapter changes keep a 900 ms eased morph towards the incoming section's live anchor, without forced wrapping. Reduced motion snaps to the section position.
+The renderer budgets work independently of the display refresh rate. Figures stay suspended around the original viewport centres while scroll input gives a gentle bounded downward current. Stopping lets them settle and stops rendering. Chapter changes keep a 900 ms eased morph without forced wrapping. Reduced motion zeros the current and snaps the shape. The historical experiments below record the user's evolving motion brief; the final subsection describes the latest correction.
 
 ## Resource limits
 
@@ -57,7 +57,7 @@ The same two-run 3.5-second production profile now measures 142.08 / 151.91 ms s
 
 All 30 desktop/mobile browser cases pass. Eight focused cases failed against the preceding production build before these changes, reproducing missing declaration hover/tap, the monochrome number, within-chapter displacement and excess paints. The updated checks require stillness within a chapter, visible downward travel continuing without more input, eventual idle stop, the limited-device paint cap, all four flag colours, and working olive-branch hover/tap. This supersedes the older test that required displacement on every scroll. Existing archive, Markdown, age, fallback and reduced-motion checks remain green.
 
-## Section-linked placement — 17 October
+## Earlier section-linked placement — superseded 17 October experiment
 
 The latest approved clarification supersedes within-chapter viewport pinning. The renderer keeps the approved shape dimensions, colours and 900 ms eased morph, but the vertical destination follows section bounds: `max(rect.top, min(0, rect.bottom - innerHeight)) + innerHeight * approvedAnchor`. Long chapters hold the composition only while filling the viewport; their entering/leaving edges carry it with the page. The morph follows the incoming section's live destination without forced offscreen wraps. Position metadata uses a direct subscription, avoiding React Canvas reconfiguration for each scroll update.
 
@@ -66,3 +66,15 @@ Tests observe an actual 180 px GPU translation with the opening section and the 
 The same two-run production scroll probe on 17 October records scripting of 171.92 / 182.72 ms desktop and 756.11 / 918.15 ms with 4× mobile CPU throttling. Actual scroll draws are 208 / 210 desktop and 171 / 171 mobile, under the existing 60 fps ceiling; idle draws remain zero in all runs. The low-hardware regression separately verifies the 600-instance / 30 fps budget. Initial encoded JavaScript is 379,697 bytes. This behavior intentionally paints during section movement, so the preceding revision's lower draw count from viewport pinning is not a like-for-like performance target. These are laboratory measurements, not real-user guarantees.
 
 Desktop/mobile motion captures have no uncaught page errors or horizontal overflow. Hover-colour restoration, resizing, hidden-page recovery and WebGL context loss/restoration pass. Lint, TypeScript, production build, design-token lint and strict UI audit pass. Read-only source review found no Important/Critical findings. No new dependencies or pipeline changes were needed.
+
+## Latest correction: suspended, interactive souls and darker ink
+
+The user corrected the prior section-following interpretation. Figures now stay at the approved viewport centres while scroll input adds a soft downward current: 25% of a bounded scroll displacement, capped at 10% of viewport height before cached per-figure variation. The current decays to exactly zero; no full-screen loop or autonomous falling continues at idle. Upward input reverses it. Reduced motion zeros it and snaps. The existing 900 ms chapter morph is retained.
+
+Every floating mode, including the quiet archivist field, supports hover and taps during morphs. Hover pins the chosen figure's X/Y with a small retention radius so its name stays readable; click resolution uses that same retained identity. Touch captures the pressed record before it drifts, but drag/scroll gestures and controls still block selection. A source-review finding about mismatched hover/click radii was fixed and covered by the retained-label-to-dialog regression.
+
+Flag visibility uses darker muted red/green/black and a weathered bone-white ink, with less paper wash only over the number and finale. There is no glow, filter, second draw pass or new dependency. The closing documentation note is ordinary Arabic text with one static geometric drop; it adds no motion workload.
+
+The final 32-case desktop/mobile suite passes. The focused run on `63f42bf` reproduced nine failures for the superseded anchors, absent downward flow, bright palette and disabled floating interactions; the existing resource tests remained green. New checks cover gap/morph and settled quiet-field interaction, pinned hover, the exact record on click, the darker palette and the Arabic closing note. Lint, TypeScript, build, strict UI audit and design-token lint pass. Desktop/mobile captures have no page errors or horizontal overflow.
+
+The same production probe records 171.90 / 166.21 ms scripting desktop and 818.48 / 746.53 ms with 4× mobile CPU throttling. Draws over the 3.5-second scroll are 203 / 210 desktop and 208 / 207 mobile, respecting the existing 60 fps ceiling. All four runs have zero settled idle draws. Initial encoded JavaScript is 380,188 bytes; the 600-instance / 30 fps low-hardware budget is independently verified by browser regression. These are local laboratory measurements of the final behavior, not universal hardware or input-latency guarantees.
