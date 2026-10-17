@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer budgets work independently of the display refresh rate. Shapes hold still while reading and scrolling within a chapter. Entering a different chapter starts one complete 900 ms journey into its shape, without waiting for more scrolling or a pause. Reduced motion skips travel.
+The renderer budgets work independently of the display refresh rate. Shapes hold still while reading, then enter/leave with the section's edges as the page scrolls. A long section holds its composition only while it fills the viewport. Chapter changes keep a 900 ms eased morph towards the incoming section's live anchor, without forced wrapping. Reduced motion snaps to the section position.
 
 ## Resource limits
 
@@ -49,10 +49,20 @@ No backend or data-pipeline change was needed. The existing memorial endpoint al
 
 At that revision the complete 26-case desktop/mobile suite passed, including actual downward travel, gathering, reduced motion, WebGL fallback, finale alignment, safe Markdown and archive interactions. Additional local browser checks passed for hover-colour restoration, resize, hidden/resumed rendering and WebGL context loss/restoration. Desktop/mobile captures had no uncaught page errors or horizontal overflow. Lint, TypeScript, production build, strict UI audit and design-token lint passed.
 
-## Follow-up: chapter entry, hover and flag colours
+## Earlier follow-up: chapter entry, hover and flag colours (15 October)
 
 The user's clarification replaces continuous scroll-driven displacement with finite chapter journeys. Within-chapter scrolling no longer wakes the renderer. Chapter entry snapshots the current pose, carries figures downward and assembles the next shape; upward navigation reverses travel and a new chapter can interrupt from the current pose. The 900 ms clock completes even after a single scroll input. Reduced motion cancels it and snaps. Declaration mode now participates in both hover and tap picking; controls, record cards and drag gestures remain excluded. The opening numeral uses the existing flag palette in spatial black/white/green bands with a red triangle.
 
 The same two-run 3.5-second production profile now measures 142.08 / 151.91 ms scripting and 84 / 85 draws on desktop; 640.85 / 655.36 ms and 62 / 62 draws with mobile CPU throttling. Mean buffer uploads are 13.04 MB desktop / 3.99 MB mobile. Initial encoded JavaScript is 379,674 bytes and settled idle draws remain zero. This saves additional work by implementing the requested stillness between chapters; it does not demonstrate a faster render of identical motion. The probe's time from the *first within-chapter scroll* to the first draw now includes intentionally waiting until chapter entry, so it must not be interpreted as input latency.
 
 All 30 desktop/mobile browser cases pass. Eight focused cases failed against the preceding production build before these changes, reproducing missing declaration hover/tap, the monochrome number, within-chapter displacement and excess paints. The updated checks require stillness within a chapter, visible downward travel continuing without more input, eventual idle stop, the limited-device paint cap, all four flag colours, and working olive-branch hover/tap. This supersedes the older test that required displacement on every scroll. Existing archive, Markdown, age, fallback and reduced-motion checks remain green.
+
+## Section-linked placement — 17 October
+
+The latest approved clarification supersedes within-chapter viewport pinning. The renderer keeps the approved shape dimensions, colours and 900 ms eased morph, but the vertical destination follows section bounds: `max(rect.top, min(0, rect.bottom - innerHeight)) + innerHeight * approvedAnchor`. Long chapters hold the composition only while filling the viewport; their entering/leaving edges carry it with the page. The morph follows the incoming section's live destination without forced offscreen wraps. Position metadata uses a direct subscription, avoiding React Canvas reconfiguration for each scroll update.
+
+Tests observe an actual 180 px GPU translation with the opening section and the same displacement in reverse, continuous no-wrap morphs, finale alignment relative to its section bounds, the low-resource paint cap and stopped idle work. Eight focused cases failed against `16bb6f7` before the fix. The full 30-case desktop/mobile suite passes. A mobile particle tap also exposed a real dialog bug: its synthesized click immediately dismissed the newly opened backdrop. Dismissal now requires a gesture that began on the backdrop; the strengthened test checks both persistent opening and deliberate dismissal. A transient initial-font-layout measurement was synchronized without relaxing the finale's original tolerance.
+
+The same two-run production scroll probe on 17 October records scripting of 171.92 / 182.72 ms desktop and 756.11 / 918.15 ms with 4× mobile CPU throttling. Actual scroll draws are 208 / 210 desktop and 171 / 171 mobile, under the existing 60 fps ceiling; idle draws remain zero in all runs. The low-hardware regression separately verifies the 600-instance / 30 fps budget. Initial encoded JavaScript is 379,697 bytes. This behavior intentionally paints during section movement, so the preceding revision's lower draw count from viewport pinning is not a like-for-like performance target. These are laboratory measurements, not real-user guarantees.
+
+Desktop/mobile motion captures have no uncaught page errors or horizontal overflow. Hover-colour restoration, resizing, hidden-page recovery and WebGL context loss/restoration pass. Lint, TypeScript, production build, design-token lint and strict UI audit pass. Read-only source review found no Important/Critical findings. No new dependencies or pipeline changes were needed.

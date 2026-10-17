@@ -111,26 +111,30 @@ test('automatic reduced motion and WebGL fallback without a motion control', asy
   await expect(page.getByRole('link', { name: 'البحث في السجلات' })).toBeAttached();
 });
 
-test('mesh stays in the viewport while scrolling and changes formation', async ({ page }) => {
+test('formation anchors move with their sections while changing shape', async ({ page }) => {
   await page.goto('/');
   const mesh = page.locator('#human-particle-canvas');
   await expect(mesh).toHaveAttribute('data-scene', 'number');
-  const center = await mesh.getAttribute('data-center-y');
+  const center = Number(await mesh.getAttribute('data-center-y'));
   await page.evaluate(() => window.scrollTo({ top: 180, behavior: 'instant' }));
-  await expect(mesh).toHaveAttribute('data-center-y', center!);
+  await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeCloseTo(center - 180, 0);
   await expect(mesh).toHaveCSS('opacity', '1');
   await page.locator('#crowd').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
   await expect(mesh).toHaveAttribute('data-scene', 'scatter');
   await expect(mesh).toHaveCSS('opacity', '1');
-  const crowdCenter = await mesh.getAttribute('data-center-y');
   await page.evaluate(() => window.scrollBy({ top: 250, behavior: 'instant' }));
-  await expect(mesh).toHaveAttribute('data-center-y', crowdCenter!);
+  const crowdCenter = await page.locator('#crowd').evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    // Long chapters hold the formation while filling the viewport, then carry it out with their edge.
+    return Math.max(rect.top, Math.min(0, rect.bottom - window.innerHeight)) + window.innerHeight * .53;
+  });
+  await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeCloseTo(crowdCenter, 0);
   await page.locator('#stats').evaluate(el => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'instant' }));
   await expect(mesh).toHaveAttribute('data-scene', 'stats');
   await expect(mesh).toHaveCSS('opacity', '1');
 });
 
-test('a chapter change carries souls into its shape without more scrolling', async ({ page }) => {
+test('particles travel with section content and settle continuously after one scroll', async ({ page }) => {
   await page.addInitScript(() => {
     const samples: number[] = [];
     window.meshY = samples;
@@ -154,9 +158,19 @@ test('a chapter change carries souls into its shape without more scrolling', asy
     window.scrollTo({ top: 180, behavior: 'instant' });
   });
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'number');
-  await page.waitForTimeout(350);
-  // Scrolling inside the same chapter must not dislodge its settled shape.
-  expect((await readY()).every(y => Math.abs(y - before) < .01)).toBe(true);
+  // The actual uploaded transform follows its section upward by 180px, not just a DOM attribute.
+  await expect.poll(async () => (await readY()).at(-1) ?? before, { timeout: 3000 }).toBeCloseTo(before + 1.8, 2);
+  await page.waitForTimeout(300);
+  const scrolled = (await readY()).at(-1)!;
+  await page.evaluate(() => {
+    window.meshY.length = 0;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+  // Reversing the reader's scroll returns the same figure down with its section.
+  await expect.poll(async () => (await readY()).at(-1) ?? scrolled, { timeout: 3000 }).toBeCloseTo(before, 2);
+  expect(scrolled - (await readY()).at(-1)!).toBeCloseTo(1.8, 2);
+  await page.waitForTimeout(300);
+  const departure = (await readY()).at(-1)!;
   await page.evaluate(() => {
     window.meshY.length = 0;
     const chapter = document.querySelector('#crowd')!;
@@ -165,14 +179,17 @@ test('a chapter change carries souls into its shape without more scrolling', asy
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
   const chapterScroll = await page.evaluate(() => window.scrollY);
   await expect.poll(async () => (await readY()).length).toBeGreaterThan(5);
-  // A single input starts a finite downward journey; it continues while scrollY stays fixed.
+  // One input starts a continuous morph; it finishes while scrollY stays fixed.
   await page.waitForTimeout(180);
   const during = (await readY()).at(-1)!;
   await page.waitForTimeout(1200);
   const after = (await readY()).at(-1)!;
   expect(await page.evaluate(() => window.scrollY)).toBe(chapterScroll);
-  expect(Math.min(...await readY())).toBeLessThan(before - .2);
   expect(Math.abs(after - during)).toBeGreaterThan(.02);
+  const samples = [departure, ...await readY()];
+  const largestStep = Math.max(...samples.slice(1).map((y, i) => Math.abs(y - samples[i])));
+  // A full-viewport wrap would teleport the name while moving between sections.
+  expect(largestStep * 100).toBeLessThan(page.viewportSize()!.height * .55);
   const settledUploads = (await readY()).length;
   await page.waitForTimeout(350);
   expect((await readY()).length).toBe(settledUploads);
@@ -194,15 +211,21 @@ test('Palestine stands behind the closing passage at the original centre', async
   await page.goto('/#finale');
   const mesh = page.locator('#human-particle-canvas');
   await expect(mesh).toHaveAttribute('data-scene', 'finale');
+  await page.evaluate(() => document.fonts.ready);
+  const viewport = page.viewportSize()!;
+  await expect.poll(() => page.evaluate(() => {
+    const rect = document.querySelector('#finale')!.getBoundingClientRect();
+    const offset = Math.max(rect.top, Math.min(0, rect.bottom - window.innerHeight));
+    const center = Number(document.querySelector('#human-particle-canvas')!.getAttribute('data-center-y'));
+    return (center - offset) / window.innerHeight;
+  })).toBeCloseTo(viewport.width < 760 ? .54 : .51, 2);
   const bounds = await page.locator('#finale').evaluate(el => ({
     top: el.querySelector('.finale-lead-block')!.getBoundingClientRect().top,
     bottom: el.querySelector('.flag-quote')!.getBoundingClientRect().bottom,
+    y: Number(document.querySelector('#human-particle-canvas')!.getAttribute('data-center-y')),
   }));
-  const y = Number(await mesh.getAttribute('data-center-y'));
-  const viewport = page.viewportSize()!;
-  expect(y / viewport.height).toBeCloseTo(viewport.width < 760 ? .54 : .51, 2);
-  expect(y).toBeGreaterThan(bounds.top);
-  expect(y).toBeLessThan(bounds.bottom);
+  expect(bounds.y).toBeGreaterThan(bounds.top);
+  expect(bounds.y).toBeLessThan(bounds.bottom);
 });
 
 test('assistant renders Arabic Markdown and rejects executable content', async ({ page }) => {
@@ -258,8 +281,13 @@ test('low-resource devices receive a bounded field that stops rendering when idl
     });
   });
   const measured = await page.evaluate(() => window.particleProbe);
-  expect(measured.draws).toBeLessThanOrEqual(2);
+  expect(measured.draws).toBeGreaterThan(10);
+  expect(measured.draws).toBeLessThanOrEqual(40);
   expect(measured.colorUploads).toBe(0);
+  await page.waitForTimeout(1400);
+  const settled = await page.evaluate(() => window.particleProbe.draws);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(settled);
   await page.evaluate(() => {
     window.particleProbe.draws = 0;
     const chapter = document.querySelector('#crowd')!;
@@ -346,7 +374,9 @@ test('olive branch particles reveal names on hover and open records on tap', asy
     await page.mouse.click(particle!.x, particle!.y);
   }
   await expect(page.getByRole('dialog')).toContainText('أمل النجار');
-  await page.keyboard.press('Escape');
+  // Opening on pointerup must survive its synthesized click; a separate backdrop gesture still closes it.
+  if (isMobile) await page.touchscreen.tap(4, 4);
+  else await page.mouse.click(4, 4);
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 

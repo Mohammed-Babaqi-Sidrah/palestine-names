@@ -4,7 +4,6 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
 import { particleQuality } from '@/lib/particleQuality';
-import { CHAPTERS } from '@/lib/useScrollStory';
 const CHAPTER_TRAVEL_MS = 900;
 
 // One flat, low-poly silhouette; every body is a single GPU instance.
@@ -132,7 +131,7 @@ export default function HumanInstancedMesh() {
   const departure = useRef(new Float32Array(2400 * 4));
   const previousMode = useRef(mode);
   const initialized = useRef(false);
-  const journey = useRef({ active: false, started: 0, direction: 1 });
+  const journey = useRef({ active: false, started: 0 });
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -418,9 +417,7 @@ export default function HumanInstancedMesh() {
     if (reduced) journey.current.active = false;
     else if (previousMode.current !== mode && initialized.current) {
       departure.current.set(current.current);
-      const before = CHAPTERS.findIndex(chapter => chapter.mode === previousMode.current);
-      const after = CHAPTERS.findIndex(chapter => chapter.mode === mode);
-      journey.current = { active: true, started: performance.now(), direction: after >= before ? 1 : -1 };
+      journey.current = { active: true, started: performance.now() };
     }
     previousMode.current = mode;
     requestRender();
@@ -556,18 +553,9 @@ export default function HumanInstancedMesh() {
       }
 
       if (travelling) {
-        // A chapter starts one complete journey, independent of further scroll input.
-        // Wrap outside the viewport so every figure travels in the navigation direction.
-        const span = viewport.height*1.3;
-        const startY = departure.current[i*4+1];
-        const direction = journey.current.direction;
-        let distance = (startY-ty)*direction;
-        if (distance < viewport.height*.12) distance += span;
-        let y = startY-direction*distance*arrival;
-        if (y < -span/2) y += span;
-        if (y > span/2) y -= span;
+        // Morph continuously towards the incoming section's live position, without a wrap.
         current.current[i*4] = THREE.MathUtils.lerp(departure.current[i*4],tx,arrival);
-        current.current[i*4+1] = y;
+        current.current[i*4+1] = THREE.MathUtils.lerp(departure.current[i*4+1],ty,arrival);
         current.current[i*4+2] = THREE.MathUtils.lerp(departure.current[i*4+2],tz,arrival);
         current.current[i*4+3] = THREE.MathUtils.lerp(departure.current[i*4+3],ts,arrival);
       } else for(let k=0;k<4;k++) {

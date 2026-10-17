@@ -1,5 +1,5 @@
 'use client';
-import { Component, type ReactNode, useEffect, useState } from 'react';
+import { Component, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import HumanInstancedMesh from './HumanInstancedMesh';
 import { useParticleStore } from '@/lib/particleStore';
@@ -18,7 +18,13 @@ export default function HumanParticleCanvas() {
   const visible=useParticleStore(s=>s.stageVisible);
   const calligraphyReady=useParticleStore(s=>s.calligraphyReady);
   const mode=useParticleStore(s=>s.mode);
-  const centerY=useParticleStore(s=>s.stageY);
+  const stage = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sync = () => stage.current?.setAttribute('data-center-y', String(useParticleStore.getState().stageY));
+    sync();
+    // Position updates go straight to the renderer; avoid reconfiguring Canvas on every scroll.
+    return useParticleStore.subscribe((s,prev) => { if (s.stageY !== prev.stageY) sync(); });
+  }, []);
   const [quality] = useState(() => particleQuality(window.innerWidth));
   const [supported] = useState(() => {
     try {
@@ -29,7 +35,7 @@ export default function HumanParticleCanvas() {
   });
   useEffect(()=>{document.documentElement.dataset.reducedMotion=String(reduced);},[reduced]);
   return <>
-    <div id="human-particle-canvas" data-scene={mode} data-center-y={centerY} aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
+    <div ref={stage} id="human-particle-canvas" data-scene={mode} aria-hidden="true" style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',opacity:visible && (mode !== 'finale' || calligraphyReady) ? 1 : 0}}>
       {supported && records.length > 0 && <CanvasBoundary><Canvas orthographic frameloop="demand" dpr={[1,quality.dpr]} camera={{position:[0,0,100],zoom:100,near:.1,far:200}} gl={{antialias:quality.fps>30,alpha:true,powerPreference:'low-power'}} onCreated={({gl,invalidate})=>{
         useParticleStore.setState({webglReady:true});
         gl.domElement.addEventListener('webglcontextlost',()=>useParticleStore.setState({webglReady:false}));
