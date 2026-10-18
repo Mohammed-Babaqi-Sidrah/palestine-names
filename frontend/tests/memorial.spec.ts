@@ -56,6 +56,74 @@ test('age summaries are whole years while counts and percentages retain precisio
   await expect(page.locator('.segment-pct').first()).toHaveText('50.0٪');
 });
 
+test('phone age categories remain readable and easy to select at every proportion', async ({ page, isMobile }) => {
+  const counts = [1, 16, 22, 47, 14];
+  await page.route('**/api/memorial', route => route.fulfill({ json: {
+    statistics: { ...statistics, total: 100, total_with_age: 100,
+      cohorts: statistics.cohorts.map((cohort, i) => ({ ...cohort, count: counts[i] })) },
+    records: [record], dataset: { status: 'fallback', record_count: 100 },
+  } }));
+  await page.goto('/#stats');
+  for (const width of [320, 360, 390, 430, 844]) {
+    await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
+    const buttons = page.locator('.spectrum-segment');
+    await expect(buttons).toHaveCount(5);
+    const sizes = await buttons.evaluateAll(elements => elements.map(el => {
+      const r = el.getBoundingClientRect(), label = el.querySelector('.segment-label')!;
+      const range = document.createRange(); range.selectNodeContents(label);
+      return { width: r.width, height: r.height, lines: range.getClientRects().length,
+        fits: el.scrollWidth <= el.clientWidth + 1 };
+    }));
+    for (const size of sizes) {
+      expect(size.width).toBeGreaterThanOrEqual(44);
+      expect(size.height).toBeGreaterThanOrEqual(44);
+      expect(size.lines).toBe(1);
+      expect(size.fits).toBe(true);
+    }
+    const track = page.locator('.spectrum-track');
+    await expect(track).toBeVisible();
+    const proportions = await track.evaluate(el => Array.from(el.children).map(child =>
+      child.getBoundingClientRect().width / el.getBoundingClientRect().width * 100));
+    proportions.forEach((value, i) => expect(value).toBeCloseTo(counts[i], 0));
+    for (let i = 0; i < counts.length; i++) {
+      if (isMobile) await buttons.nth(i).tap(); else await buttons.nth(i).click();
+      await expect(buttons.nth(i)).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.spectrum-detail-box')).toContainText(statistics.cohorts[i].range);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+});
+
+test('phone controls fit their labels and keep comfortable touch and input sizes', async ({ page }) => {
+  await page.goto('/#archivist');
+  for (const width of [320, 390, 430, 844]) {
+    await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
+    expect(await page.locator('#archivist-query').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+    for (const selector of ['.wordmark', '.archive-desk-source a', '.dataset-source a', '.archive-colophon a[href*="github.com"]']) {
+      const sizes = await page.locator(selector).evaluateAll(elements => elements.map(el => {
+        const r = el.getBoundingClientRect(); return { width: r.width, height: r.height };
+      }));
+      for (const size of sizes) {
+        expect(size.height).toBeGreaterThanOrEqual(44);
+        expect(size.width).toBeGreaterThanOrEqual(44);
+      }
+    }
+  }
+  await page.goto('/archive');
+  for (const width of [320, 360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    const labelsFit = await page.locator('.archive-filters select').evaluateAll(elements => elements.every(el => {
+      const select = el as HTMLSelectElement, style = getComputedStyle(el);
+      const context = document.createElement('canvas').getContext('2d')!;
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      return context.measureText(select.selectedOptions[0].text).width + parseFloat(style.paddingLeft)
+        + parseFloat(style.paddingRight) + 24 <= el.clientWidth;
+    }));
+    expect(labelsFit).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+});
+
 test('search, clear focus, no results and record dialog', async ({ page }) => {
   await page.goto('/archive');
   const search = page.getByLabel('الاسم أو اسم العائلة');
@@ -328,12 +396,16 @@ test('Palestine keeps its centre and the remembrance note stays in the responsiv
     top: el.getBoundingClientRect().top + window.scrollY - window.innerHeight * .45, behavior: 'instant',
   }));
   await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeLessThan(beforeFooter - 30);
-  const boundary = await mesh.evaluate(el => {
+  const readBoundary = () => mesh.evaluate(el => {
     const clip = getComputedStyle(el).clipPath.match(/inset\(0px 0px ([\d.]+)px/);
     return { bottom: clip ? Number(clip[1]) : -1,
-      footer: document.querySelector('.archive-colophon')!.getBoundingClientRect().top, height: window.innerHeight };
+      footer: document.querySelector('.archive-colophon')!.getBoundingClientRect().top, height: window.innerHeight,
+      css: getComputedStyle(el).clipPath, mode: el.getAttribute('data-scene'), center: el.getAttribute('data-center-y') };
   });
-  expect(boundary.bottom).toBeGreaterThan(0);
+  // Resizing and scroll anchoring can finish on separate animation frames.
+  await expect.poll(async () => (await readBoundary()).bottom).toBeGreaterThan(0);
+  const boundary = await readBoundary();
+  expect(boundary.bottom, JSON.stringify(boundary)).toBeGreaterThan(0);
   expect(boundary.height - boundary.bottom).toBeLessThanOrEqual(boundary.footer + 1);
 });
 

@@ -81,6 +81,8 @@ Scrolling remains native. One scheduled observer follows chapter positions while
 
 Departure shares the living-register background's cached positions, tiny scale and quiet ink. Complete shapes retain their chapter palettes; colour uploads run only when the quiet-ink blend changes and skip already-quiet modes. The original movement curve and resource budgets remain. The closing «فلسطين» stays behind the poetry and lifts/clips above the footer as it approaches. The paper footer pairs Tech For Palestine's official locally served logo with the source heading, credits Ministry lists via the project, preserves documentation/repository links and thanks contributors. It also links [babaqi.io](https://babaqi.io), with GitHub and LinkedIn secondary. Source/developer columns stack on mobile; the motto and return link share the bottom row.
 
+Phone layouts are checked at 320, 360, 390 and 430 px, plus 844px landscape. Small age categories keep accurate proportions in a separate track with readable, touch-sized category buttons below; the wide desktop spectrum stays unchanged. Archive filters stack on narrow phones, assistant input uses 16px text and source/brand/social links have comfortable touch targets. Full verification scope: [mobile QA](docs/mobile-qa.md).
+
 ## Structure
 
 - `backend/data/`: CSV validation, atomic snapshots, provenance and refresh CLI.

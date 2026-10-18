@@ -94,3 +94,7 @@ Reuse the exact background behind «04 — سِجل الذاكرة الحيّة�
 ## Longer tree hold and unchanged quiet figures — latest 18 October refinement
 
 Hold the tree complete until normalized chapter progress .45, then disperse with (progress-.45)/.37, completing at .82 before the archivist arrives. Keep the first three departure curves and existing anchors/layout. The archivist already uses the shared quiet field; remove its redundant departure and disable entry's vertical stretching there. Preserve scale, ink, progression elsewhere, reduced motion, picking and stopped idle rendering. GPU regressions must check tree hold, later gradual departure/reversal and quiet figure proportions during entry.
+
+## Final phone QA — 18 October
+
+Check all six chapters and /archive at 320/360/390/430px portrait and 844px landscape. Fix measured age-label clipping/small category targets using an accurate proportional track plus the existing buttons as a touch-sized legend at <=1000px. Stack filters at <=480px, enlarge phone assistant input to 16px and source/brand/social touch targets to 44px. Preserve desktop styling, data, particles and footer identity. Verify tiny category selection, true proportions, complete native select labels, long names/dialogs, safe contained Markdown/code, menu navigation and zero document overflow. Results: mobile-qa.md.

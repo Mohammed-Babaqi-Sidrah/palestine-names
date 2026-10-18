@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useParticleStore } from '@/lib/particleStore';
 import DatasetNote from '@/components/DatasetNote';
 
@@ -88,6 +88,9 @@ export default function LivingStatsScene() {
             </div>
 
             {/* Segmented Bar */}
+            <div className="spectrum-track" aria-hidden="true">
+              {cohorts.map(c => <span key={c.id} style={{ width: `${c.pct}%` }} />)}
+            </div>
             <div className="spectrum-bar" role="group" aria-label="توزيع الفئات العمرية">
               {cohorts.map(c => {
                 const isActive = activeCohort === c.id;
@@ -96,7 +99,7 @@ export default function LivingStatsScene() {
                     key={c.id}
                     type="button"
                     className={`spectrum-segment ${isActive ? 'active' : ''}`}
-                    style={{ width: `${c.pct}%` }}
+                    style={{ '--cohort-share': `${c.pct}%` } as CSSProperties}
                     onClick={() => setActiveCohort(isActive ? null : c.id)}
                     aria-pressed={isActive}
                     aria-label={`${c.label}: ${number(c.count)} اسمًا (${c.pct.toFixed(1)}٪)`}
