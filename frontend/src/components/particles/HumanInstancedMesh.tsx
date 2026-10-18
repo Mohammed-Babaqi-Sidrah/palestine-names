@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
 import { particleQuality } from '@/lib/particleQuality';
+import { bloodDropField, particleRandom as random } from '@/lib/particleDispersal';
 const CHAPTER_TRAVEL_MS = 900;
 const FLAG = { red: '#a52b28', green: '#1c6840', white: '#bbb7ad', black: '#151a16' };
 const FINALE_FLAG = ['#e4312b', '#149954', '#ffffff', '#1e221e'];
@@ -19,10 +20,6 @@ function humanGeometry() {
   const head = new THREE.Shape();
   head.absarc(0,.4,.12,0,Math.PI*2,false);
   return new THREE.ShapeGeometry([shape, head], 5);
-}
-function random(i: number, salt = 0) {
-  const n = Math.sin((i + 1) * 127.1 + salt * 311.7) * 43758.5453;
-  return n - Math.floor(n);
 }
 // High-fidelity geographic border polygon of historic Palestine (34.22°E to 35.69°E, 29.50°N to 33.28°N)
 const PALESTINE_BOUNDARY: [number, number][] = [
@@ -136,19 +133,9 @@ export default function HumanInstancedMesh() {
   const journey = useRef({ active: false, started: 0 });
   const inspectionReady = useRef(false);
   const lastScrollInput = useRef(-Infinity);
-  // A curved, tapering current of souls, cached once; no rectangular boundary or idle drift.
-  const dispersed = useMemo(() => {
-    const points = new Float32Array(count*2);
-    for (let i=0; i<count; i++) {
-      const t = random(i)*2-1;
-      const taper = (1-t*t)**.65;
-      // Layered noise keeps most figures near the current, with softer scattered edges.
-      const haze = (random(i,1)+random(i,2)+random(i,3)-1.5)/1.5;
-      points[i*2] = (t*.42+haze*taper*.025)*viewport.width;
-      points[i*2+1] = (Math.sin(t*Math.PI*.9)*.15+t*.08+haze*taper*.16)*viewport.height;
-    }
-    return points;
-  }, [count,viewport.width,viewport.height]);
+  const compact = size.width < 760;
+  const dispersed = useMemo(() => bloodDropField(count, viewport.width, viewport.height, compact),
+    [count,viewport.width,viewport.height,compact]);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -400,6 +387,13 @@ export default function HumanInstancedMesh() {
     }
     return values;
   }, [mode, count, number]);
+  const bloodPalette = useMemo(() => {
+    const values = new Float32Array(count*3);
+    const inks = ['#8b2530','#a33138','#741d27'].map(ink => new THREE.Color(ink));
+    for (let i=0; i<count; i++) inks[(i%7)%inks.length].toArray(values,i*3);
+    return values;
+  }, [count]);
+  const bloodBlend = useRef(0);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -407,6 +401,7 @@ export default function HumanInstancedMesh() {
       mesh.current.instanceColor.array.set(palette);
       mesh.current.instanceColor.needsUpdate = true;
     } else mesh.current.instanceColor = new THREE.InstancedBufferAttribute(palette.slice(), 3);
+    bloodBlend.current = 0;
     requestRender();
   }, [palette, count, requestRender]);
 
@@ -532,6 +527,13 @@ export default function HumanInstancedMesh() {
     const departing = mode === 'number' || mode === 'scatter' || mode === 'names';
     // Unfold into main's suspended field as the reader leaves, then gather into the next chapter.
     const detach = !reduced && departing ? THREE.MathUtils.clamp((pState.chapterProgress-.13)*1.8,0,1) : 0;
+    const inkBlend = THREE.MathUtils.smoothstep(detach,.2,.9);
+    if (inkBlend !== bloodBlend.current && mesh.current.instanceColor) {
+      const colours = mesh.current.instanceColor.array;
+      for (let i=0; i<palette.length; i++) colours[i] = palette[i]+(bloodPalette[i]-palette[i])*inkBlend;
+      mesh.current.instanceColor.needsUpdate = true;
+      bloodBlend.current = inkBlend;
+    }
     const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
     const travelling = !reduced && journey.current.active && progress < 1;
     if (!travelling) journey.current.active = false;

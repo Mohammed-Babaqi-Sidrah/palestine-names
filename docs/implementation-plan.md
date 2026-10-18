@@ -65,8 +65,14 @@ Keep the opening number's dark flag inks (#a52b28, #1c6840, #bbb7ad, #151a16), s
 
 Move «هؤلاء مَن وُثِّقَت أسماؤهم… وليسوا كلَّ مَن فقدنا.» from the finale into the navbar's centre label position, in deep red #7a2328 Amiri ink with no drop. Preserve the brand, index control/drawer, progress rule and focus treatment. Keep an 88px desktop header and a stable 112px two-row mobile header, position the drawer below it, and verify readable Arabic wrapping with no clipping or overflow at 320px, 390px and desktop widths. Regressions should verify settled-only picking, original-main departure geometry, unchanged later morphs and separate opening/finale palettes; do not treat earlier historical test counts as proof of the current revision.
 
-## Final scoped refinement — organic spread and source thanks, 18 October
+## Earlier organic spread and source thanks — superseded silhouette, 18 October
 
 Preserve the approved motion and replace only the uniform rectangular spread with a cached broad S-curve, tapered ends and softly scattered edges. Keep all per-frame behavior, colours, hover gates and device budgets. Verify actual GPU occupancy follows the curved field while the existing extent, progress, gathering and idle regressions remain green.
 
 Add source acknowledgement and Arabic thanks inside the existing finale colophon. Credit Ministry lists via Tech For Palestine with direct documentation/repository links, English bidi isolation and safe new tabs. Reuse the original paper, rule, olive heading and prose styles; verify the source row and links at 320px/mobile/desktop. Leave the approved pipeline and live provenance note intact.
+
+## Final blood drops, official source logo and personal footer — 18 October
+
+Replace the connected ribbon with seven separated medium drops made from existing figures. Vary silhouette, tilt and scale; use a staggered mobile arrangement. Cache geometry and dark-red inks, blend colour only during departure, and retain the approved morph, chapter palettes, reduced-motion path, hover gates and resource budgets. GPU regressions must identify separate groups and red ink while preserving progression and idle stop.
+
+Restructure the closing paper footer into brand/count header, source and developer columns, and the existing motto. Use the official SVG from the published TFP press kit, served locally without edits, and preserve source credit/thanks and direct dataset links. Add babaqi.io prominently; make GitHub/LinkedIn quiet text links. Check actual logo loading, external-link safety, focus, English isolation and desktop/mobile/320px layout.

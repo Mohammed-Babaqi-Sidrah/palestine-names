@@ -133,11 +133,13 @@ test('formations stay suspended at their approved viewport centres between secti
 test('souls progressively disperse before the next shape and stop rendering at rest', async ({ page, isMobile }) => {
   await page.addInitScript(() => {
     window.meshMatrices = [];
+    window.meshPalette = [];
     window.meshY = [];
     for (const method of ['bufferData', 'bufferSubData'] as const) {
       const original = WebGL2RenderingContext.prototype[method];
       Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
         const data = args[method === 'bufferData' ? 1 : 2];
+        if (data instanceof Float32Array && data.length === 128 * 3) window.meshPalette = Array.from(data);
         if (data instanceof Float32Array && data.length === 128 * 16) {
           window.meshMatrices = Array.from(data);
           window.meshY.push(data[13]);
@@ -185,23 +187,32 @@ test('souls progressively disperse before the next shape and stop rendering at r
     for (let i = 0; i < window.meshMatrices.length; i += 16) {
       xs.push(window.meshMatrices[i + 12]); ys.push(window.meshMatrices[i + 13]);
     }
-    const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
-    const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
-    let covariance = 0, varianceX = 0, varianceY = 0, opposingCorners = 0;
+    const seen = new Set<number>(), clusters: number[] = [];
+    const separation = Math.min(window.innerWidth, window.innerHeight) * .085;
     for (let i = 0; i < xs.length; i++) {
-      covariance += (xs[i] - meanX) * (ys[i] - meanY);
-      varianceX += (xs[i] - meanX) ** 2; varianceY += (ys[i] - meanY) ** 2;
-      const x = xs[i] * 100 / window.innerWidth, y = ys[i] * 100 / window.innerHeight;
-      if ((x < -.25 && y > .15) || (x > .25 && y < -.15)) opposingCorners++;
+      if (seen.has(i)) continue;
+      const pending = [i]; seen.add(i); let members = 0;
+      while (pending.length) {
+        const current = pending.pop()!; members++;
+        for (let j = 0; j < xs.length; j++) {
+          if (!seen.has(j) && Math.hypot(xs[current] - xs[j], ys[current] - ys[j]) * 100 < separation) {
+            seen.add(j); pending.push(j);
+          }
+        }
+      }
+      clusters.push(members);
     }
     return { width: (Math.max(...xs) - Math.min(...xs)) * 100, height: (Math.max(...ys) - Math.min(...ys)) * 100,
-      opposingCornerShare: opposingCorners / xs.length, correlation: covariance / Math.sqrt(varianceX * varianceY) };
+      clusters: clusters.filter(size => size >= 8), largestCluster: Math.max(...clusters) / xs.length,
+      red: window.meshPalette.filter((r, i) => i % 3 === 0 && r > window.meshPalette[i+1] * 3 && r > window.meshPalette[i+2] * 2).length };
   });
   expect(spread.width).toBeGreaterThan(page.viewportSize()!.width * .7);
   expect(spread.height).toBeGreaterThan(page.viewportSize()!.height * .45);
-  // A curved ribbon leaves opposing box corners sparse rather than filling a rectangle.
-  expect(spread.opposingCornerShare).toBeLessThan(.03);
-  expect(spread.correlation).toBeGreaterThan(.5);
+  // Separate medium drops must not collapse into one ribbon or an undifferentiated cloud.
+  expect(spread.clusters.length).toBeGreaterThanOrEqual(5);
+  expect(spread.clusters.length).toBeLessThanOrEqual(9);
+  expect(spread.largestCluster).toBeLessThan(.3);
+  expect(spread.red).toBe(128);
   const settledUploads = await page.evaluate(() => window.meshY.length);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(settledUploads);
@@ -285,6 +296,12 @@ test('source acknowledgement credits and thanks Tech For Palestine clearly on na
   await expect(credits.getByRole('heading', { name: 'مصدر الأسماء', exact: true })).toBeVisible();
   await expect(credits.getByRole('link', { name: 'Tech For Palestine', exact: true })).toHaveAttribute('href', 'https://data.techforpalestine.org/docs/killed-in-gaza/');
   await expect(credits.getByRole('link', { name: 'مستودع البيانات المفتوح', exact: true })).toHaveAttribute('href', 'https://github.com/TechForPalestine/palestine-datasets');
+  const logo = credits.getByRole('img', { name: 'شعار Tech For Palestine' });
+  await expect(logo).toBeVisible();
+  await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const website = page.locator('.archive-colophon').getByRole('link', { name: 'babaqi.io', exact: true });
+  await expect(website).toHaveAttribute('href', 'https://babaqi.io');
+  await expect(website).toHaveAttribute('rel', /noopener/);
   const thanks = credits.getByText('شكرًا للقائمين على المشروع ولكلّ مَن يسهم في توثيق الأسماء وصون الذاكرة.', { exact: true });
   await expect(thanks).toBeVisible();
   if (isMobile) await page.setViewportSize({ width: 320, height: 844 });
@@ -354,7 +371,7 @@ test('low-resource devices receive a bounded field that stops rendering when idl
     window.particleProbe.draws = 0; window.particleProbe.colorUploads = 0;
     const start = performance.now();
     await new Promise<void>(resolve => {
-      const move = (now: number) => { window.scrollTo({ top: (now - start) * .15, behavior: 'instant' });
+      const move = (now: number) => { window.scrollTo({ top: (now - start) * .1, behavior: 'instant' });
         if (now - start < 1000) requestAnimationFrame(move); else resolve(); };
       requestAnimationFrame(move);
     });
@@ -367,6 +384,15 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   const settled = await page.evaluate(() => window.particleProbe.draws);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(settled);
+  // Early departure preserves flag colours; entering the blood phase uploads its new ink once.
+  await page.evaluate(() => window.scrollTo({ top: 400, behavior: 'instant' }));
+  await page.waitForTimeout(1400);
+  const bloodPhase = await page.evaluate(() => ({ ...window.particleProbe }));
+  expect(bloodPhase.colorUploads).toBeGreaterThan(0);
+  expect(bloodPhase.colorUploads).toBeLessThanOrEqual(bloodPhase.draws);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(bloodPhase.colorUploads);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(bloodPhase.draws);
   await page.evaluate(() => {
     window.particleProbe.draws = 0;
     const chapter = document.querySelector('#crowd')!;
