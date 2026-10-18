@@ -90,3 +90,7 @@ Remove the rejected constellations/birds and their ink transitions. Use one dete
 ## Match the living-register background — latest 18 October reference
 
 Reuse the exact background behind «04 — سِجل الذاكرة الحيّة» for all departures: tiny .025 figures, its even wide distribution and subdued olive-grey ink. Make the archivist and departures consume the same position/scale and palette sources. Fade to quiet ink during dispersal, retain complete chapter palettes, skip redundant quiet-mode uploads and stop at rest. Preserve timing, hover gates, reduced motion, resource budgets and footer/finale work. GPU tests compare departure positions, scale and ink directly against the living-register background.
+
+## Longer tree hold and unchanged quiet figures — latest 18 October refinement
+
+Hold the tree complete until normalized chapter progress .45, then disperse with (progress-.45)/.37, completing at .82 before the archivist arrives. Keep the first three departure curves and existing anchors/layout. The archivist already uses the shared quiet field; remove its redundant departure and disable entry's vertical stretching there. Preserve scale, ink, progression elsewhere, reduced motion, picking and stopped idle rendering. GPU regressions must check tree hold, later gradual departure/reversal and quiet figure proportions during entry.

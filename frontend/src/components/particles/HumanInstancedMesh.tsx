@@ -524,9 +524,10 @@ export default function HumanInstancedMesh() {
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
     if (!pState.stageVisible || document.hidden) return;
-    const departing = mode === 'number' || mode === 'scatter' || mode === 'names' || mode === 'stats' || mode === 'archivist';
-    // Unfold into main's suspended field as the reader leaves, then gather into the next chapter.
-    const detach = !reduced && departing ? THREE.MathUtils.clamp((pState.chapterProgress-.13)*1.8,0,1) : 0;
+    const departing = mode === 'number' || mode === 'scatter' || mode === 'names' || mode === 'stats';
+    // Give the tree a longer reading interval, then finish dispersing before the archivist.
+    const departureProgress = mode === 'stats' ? (pState.chapterProgress-.45)/.37 : (pState.chapterProgress-.13)*1.8;
+    const detach = !reduced && departing ? THREE.MathUtils.clamp(departureProgress,0,1) : 0;
     const inkBlend = palette === quietPalette ? 0 : THREE.MathUtils.smoothstep(detach,.2,.9);
     if (inkBlend !== quietBlend.current && mesh.current.instanceColor) {
       const colours = mesh.current.instanceColor.array;
@@ -538,7 +539,7 @@ export default function HumanInstancedMesh() {
     const travelling = !reduced && journey.current.active && progress < 1;
     if (!travelling) journey.current.active = false;
     const arrival = 1-(1-progress)**3;
-    const flow = travelling ? Math.sin(progress*Math.PI)*.05 : 0;
+    const flow = travelling && mode !== 'archivist' ? Math.sin(progress*Math.PI)*.05 : 0;
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);

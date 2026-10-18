@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer budgets work independently of the display refresh rate. All five outgoing chapters progressively disperse into the cached quiet field shared with the living-register background as the reader leaves. Chapter changes gather into the next shape with the existing 900 ms eased morph. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
+The renderer budgets work independently of the display refresh rate. The four complete chapter shapes progressively disperse into the cached quiet field shared with the living-register background; the archivist holds that field without another departure. Chapter changes gather into the next shape with the existing 900 ms eased morph. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
 
 ## Resource limits
 
@@ -125,8 +125,14 @@ The user rejected the intermediate motifs. All five departures now use one unstr
 
 All 34 desktop/mobile browser cases pass (48.6 seconds), following four focused failures against 327a062. GPU checks require sparse bounding corners, progressive displacement, varied scales, unchanged departure colours, idle stop and reduced motion. The limited-resource test confirms zero departure colour uploads, 600 instances, the 30 fps ceiling and stopped idle rendering. Desktop/mobile captures of the number, map and tree departures show free dispersion, no page errors and no horizontal overflow. Lint, types, production build, strict UI audit and design-token lint pass. Historical timings above belong to their labelled geometries; this revision uses browser budget regressions and does not claim a new measured speed-up.
 
-## Current living-register reference — 18 October 2026
+## Living-register reference — 18 October 2026
 
 Departure now reuses the exact quiet background behind «04 — سِجل الذاكرة الحيّة»: deterministic even positions spanning .92 viewport width and .86 of the .8-height stage, .025 figure scale and the existing two olive-grey inks. Both paths share the same geometry/scale cache and quiet palette. Complete chapter palettes remain; dispersal blends into quiet ink only while that blend changes. The map/archivist already use that ink, so they skip redundant colour uploads. All original timing, idle stop, reduced motion, picking restrictions and resource limits remain.
 
 All 34 desktop/mobile cases pass (52.8 seconds), after four focused failures against 5b001e2. GPU cases compare number/map departure positions, scale and ink directly with the archivist background. Low-resource cases retain 600 instances and the 30 fps ceiling, bound ink uploads during change, skip quiet-mode uploads and verify no idle paints/uploads. Desktop/mobile captures of number/map/tree departures and the archivist reference have no page errors or horizontal overflow. Lint, types, production build, strict UI audit and design-token lint pass. Existing footer/finale and complete-shape palette regressions also pass. This focused refinement makes no new cross-device timing claim.
+
+## Longer tree hold and steady archivist entry — 18 October 2026
+
+The tree now holds its complete pose through 45% of its chapter's normalized scroll interval, then disperses with clamp((progress-.45)/.37,0,1), completing at 82% before the archivist enters. The first three departure curves and every anchor/layout remain. The archivist already is the shared quiet field, so its redundant departure is removed. Entry no longer applies the chapter morph's vertical stretch to quiet figures; their X/Y proportions remain constant.
+
+Both focused desktop/mobile regressions failed against 688b022, measuring approximately 30% transient vertical stretching. All 34 production browser cases now pass. The GPU regression also verifies the complete tree at 40%, partial dispersion at 65%, full dispersion at 85%, and restoration on reverse scrolling. Existing shared-field geometry/ink/scale comparisons, picking guards, complete-shape palettes, resource limits and zero idle work remain green. Batched desktop/mobile captures show the longer held tree, gradual departure and unchanged quiet backdrop, with no page errors or horizontal overflow. Lint, types, production build, strict UI audit and design-token lint pass. No extra render pass, resource ceiling, dependency, pipeline or wider layout change was introduced.

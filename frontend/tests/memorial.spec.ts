@@ -135,6 +135,7 @@ test('souls progressively disperse before the next shape and stop rendering at r
     window.meshMatrices = [];
     window.meshPalette = [];
     window.meshY = [];
+    window.meshFrames = [];
     for (const method of ['bufferData', 'bufferSubData'] as const) {
       const original = WebGL2RenderingContext.prototype[method];
       Object.defineProperty(WebGL2RenderingContext.prototype, method, { value: function(this: WebGL2RenderingContext, ...args: unknown[]) {
@@ -143,6 +144,8 @@ test('souls progressively disperse before the next shape and stop rendering at r
         if (data instanceof Float32Array && data.length === 128 * 16) {
           window.meshMatrices = Array.from(data);
           window.meshY.push(data[13]);
+          window.meshFrames.push({ at: performance.now(), positions: window.meshMatrices });
+          if (window.meshFrames.length > 120) window.meshFrames.shift();
         }
         return Reflect.apply(original, this, args);
       } });
@@ -240,11 +243,37 @@ test('souls progressively disperse before the next shape and stop rendering at r
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(mapDeparture.uploads);
 
+  await page.evaluate(() => { window.meshFrames = []; });
   await scrollProgress('archivist', 0);
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'archivist');
   await page.waitForTimeout(1600);
   expect(await displacement(cloud)).toBeLessThan(.02);
   expect(await page.evaluate(() => window.meshPalette)).toEqual(departurePalette);
+  expect(await page.evaluate(() => window.meshFrames.length)).toBeGreaterThan(1);
+  const quietStretch = await page.evaluate(() => Math.max(...window.meshFrames.map(frame =>
+    Math.max(...frame.positions.filter((_, i) => i%16===5).map((height, i) => Math.abs(height/frame.positions[i*16]-1))))));
+  expect(quietStretch, 'the quiet field keeps the same figure proportions on entry').toBeLessThan(.01);
+
+  await scrollProgress('stats', 0);
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'stats');
+  await page.waitForTimeout(1600);
+  const tree = await page.evaluate(() => window.meshMatrices);
+  const treePalette = await page.evaluate(() => window.meshPalette);
+  await scrollProgress('stats', .4);
+  await page.waitForTimeout(1500);
+  expect(await displacement(tree), 'the tree stays complete through the first 40% of its chapter').toBeLessThan(.02);
+  expect(await page.evaluate(() => window.meshPalette)).toEqual(treePalette);
+  await scrollProgress('stats', .65);
+  await page.waitForTimeout(1500);
+  expect(await displacement(tree)).toBeGreaterThan(.15);
+  expect(await displacement(cloud)).toBeGreaterThan(.15);
+  await scrollProgress('stats', .85);
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'stats');
+  await page.waitForTimeout(1500);
+  expect(await displacement(cloud)).toBeLessThan(.02);
+  await scrollProgress('stats', .4);
+  await page.waitForTimeout(1500);
+  expect(await displacement(tree), 'scrolling back restores the held tree').toBeLessThan(.02);
 
   await scrollProgress('crowd', 0);
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
