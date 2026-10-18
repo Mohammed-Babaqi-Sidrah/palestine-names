@@ -7,13 +7,10 @@ export function departureField(count: number, width: number, height: number) {
   const points = new Float32Array(count * 2);
   const scales = new Float32Array(count);
   for (let i=0; i<count; i++) {
-    // Unbounded soft density: no motif, clusters or straight box edges.
-    // Cache once so the same souls retrace their paths when scrolling back.
-    const radius = Math.sqrt(-2*Math.log(Math.max(.0001,particleRandom(i,1))));
-    const angle = particleRandom(i,2)*Math.PI*2;
-    points[i*2] = Math.cos(angle)*radius*width*.24;
-    points[i*2+1] = Math.sin(angle)*radius*height*.22;
-    scales[i] = .04+particleRandom(i,4)*.045;
+    // Share the living-register background's original positions and tiny scale.
+    points[i*2] = (particleRandom(i)-.5)*width*.92;
+    points[i*2+1] = (particleRandom(i,1)-.5)*height*.8*.86;
+    scales[i] = .025;
   }
   return { points, scales };
 }

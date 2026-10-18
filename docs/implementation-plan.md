@@ -83,6 +83,10 @@ Replace the rejected drops with alternating airy soul constellations and curved-
 
 Keep the original finale centre until the footer approaches, then lift/clip the calligraphy above its top and hide past the masthead. Exclude footer picking. Organize the existing footer into brand/count header, aligned logo/source identity, source/developer columns and bottom motto/return link. Preserve all approved content/links and the official artwork. Check 320/390/820/1440px and production browser regressions.
 
-## Free dispersion — latest 18 October correction
+## Earlier free dispersion — superseded density and scale
 
 Remove the rejected constellations/birds and their ink transitions. Use one deterministic free spread with soft outward density and varied figure scales, without a rectangular edge or an intermediate pictorial shape. Preserve chapter palettes, all five departure/gathering passages, 900 ms morph, idle stop, reduced motion and settled-only picking. Preserve the approved footer arrangement and finale boundary. Verify sparse extremities, progressive spread/gathering, unchanged ink, no departure colour uploads and desktop/mobile resource limits.
+
+## Match the living-register background — latest 18 October reference
+
+Reuse the exact background behind «04 — سِجل الذاكرة الحيّة» for all departures: tiny .025 figures, its even wide distribution and subdued olive-grey ink. Make the archivist and departures consume the same position/scale and palette sources. Fade to quiet ink during dispersal, retain complete chapter palettes, skip redundant quiet-mode uploads and stop at rest. Preserve timing, hover gates, reduced motion, resource budgets and footer/finale work. GPU tests compare departure positions, scale and ink directly against the living-register background.

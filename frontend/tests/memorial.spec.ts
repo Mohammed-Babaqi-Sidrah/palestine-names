@@ -155,7 +155,6 @@ test('souls progressively disperse before the next shape and stop rendering at r
   await expect.poll(() => page.evaluate(() => window.meshMatrices.length)).toBe(128 * 16);
   await page.waitForTimeout(1500);
   const formed = await page.evaluate(() => window.meshMatrices);
-  const originalPalette = await page.evaluate(() => window.meshPalette);
   const displacement = (reference: number[]) => page.evaluate(previous => {
     let squared = 0;
     for (let i = 0; i < window.meshMatrices.length; i += 16) {
@@ -189,17 +188,13 @@ test('souls progressively disperse before the next shape and stop rendering at r
       xs.push(window.meshMatrices[i + 12]); ys.push(window.meshMatrices[i + 13]);
     }
     return { width: (Math.max(...xs) - Math.min(...xs)) * 100, height: (Math.max(...ys) - Math.min(...ys)) * 100,
-      corners: xs.filter((x, i) => Math.abs((x-Math.min(...xs))/(Math.max(...xs)-Math.min(...xs))-.5) > .3
-        && Math.abs((ys[i]-Math.min(...ys))/(Math.max(...ys)-Math.min(...ys))-.5) > .3).length / xs.length,
       scales: window.meshMatrices.filter((_, i) => i % 16 === 0) };
   });
   expect(spread.width).toBeGreaterThan(page.viewportSize()!.width * .7);
   expect(spread.height).toBeGreaterThan(page.viewportSize()!.height * .45);
-  // A soft free spread has sparse extremities rather than four populated box corners.
-  expect(spread.corners).toBeLessThan(.08);
-  // Departure retains the chapter's ink and individual souls' varied scale.
-  expect(await page.evaluate(() => window.meshPalette)).toEqual(originalPalette);
-  expect(Math.max(...spread.scales) - Math.min(...spread.scales)).toBeGreaterThan(.035);
+  // Use the same tiny, quiet figures as the living-register background.
+  for (const scale of spread.scales) expect(scale).toBeCloseTo(.025, 3);
+  const departurePalette = await page.evaluate(() => window.meshPalette);
   const settledUploads = await page.evaluate(() => window.meshY.length);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(settledUploads);
@@ -232,7 +227,6 @@ test('souls progressively disperse before the next shape and stop rendering at r
   expect(await displacement(cloud)).toBeGreaterThan(.2);
   expect(await page.evaluate(() => Math.max(...window.meshMatrices.filter((_, i) => i % 16 === 0)))).toBeLessThan(.094);
 
-  const mapPalette = await page.evaluate(() => window.meshPalette);
   await scrollProgress('crowd', .7);
   await page.waitForTimeout(1600);
   const mapDeparture = await page.evaluate(() => ({
@@ -240,10 +234,21 @@ test('souls progressively disperse before the next shape and stop rendering at r
     scales: window.meshMatrices.filter((_, i) => i % 16 === 0),
     uploads: window.meshY.length,
   }));
-  expect(mapDeparture.palette).toEqual(mapPalette);
-  expect(Math.max(...mapDeparture.scales) - Math.min(...mapDeparture.scales)).toBeGreaterThan(.035);
+  expect(mapDeparture.palette).toEqual(departurePalette);
+  for (const scale of mapDeparture.scales) expect(scale).toBeCloseTo(.025, 3);
+  expect(await displacement(cloud)).toBeLessThan(.02);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(mapDeparture.uploads);
+
+  await scrollProgress('archivist', 0);
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'archivist');
+  await page.waitForTimeout(1600);
+  expect(await displacement(cloud)).toBeLessThan(.02);
+  expect(await page.evaluate(() => window.meshPalette)).toEqual(departurePalette);
+
+  await scrollProgress('crowd', 0);
+  await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
+  await page.waitForTimeout(1100);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
@@ -401,13 +406,14 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   const settled = await page.evaluate(() => window.particleProbe.draws);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(settled);
-  // Free departure keeps the flag palette, without colour uploads.
+  // Only the changing quiet-ink blend uploads colours; settled departure does no work.
   await page.evaluate(() => window.scrollTo({ top: 400, behavior: 'instant' }));
   await page.waitForTimeout(1400);
   const departurePhase = await page.evaluate(() => ({ ...window.particleProbe }));
-  expect(departurePhase.colorUploads).toBe(0);
+  expect(departurePhase.colorUploads).toBeGreaterThan(0);
+  expect(departurePhase.colorUploads).toBeLessThanOrEqual(departurePhase.draws);
   await page.waitForTimeout(350);
-  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(0);
+  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(departurePhase.colorUploads);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(departurePhase.draws);
   await page.evaluate(() => {
     window.particleProbe.draws = 0;
@@ -427,10 +433,11 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   });
   await page.waitForTimeout(1400);
   const mapDeparture = await page.evaluate(() => ({ ...window.particleProbe }));
+  // The map already uses quiet ink, so departure needs no redundant colour upload.
   expect(mapDeparture.colorUploads).toBe(0);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(mapDeparture.draws);
-  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(0);
+  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(mapDeparture.colorUploads);
 });
 
 test('number keeps muted flag colors while Palestine restores its original palette', async ({ page }) => {

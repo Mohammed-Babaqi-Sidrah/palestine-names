@@ -334,8 +334,8 @@ export default function HumanInstancedMesh() {
           scale = mobile ? 0.042 : 0.054;
         }
       } else if(mode === 'archivist') {
-        x=(a-.5)*w*.92; y=(b-.5)*h*.86;
-        scale=.025;
+        x=dispersed.points[i*2]; y=dispersed.points[i*2+1];
+        scale=dispersed.scales[i];
       } else if(mode === 'finale') {
         // Monumental Arabic Calligraphy: «فلسطين» (Palestine) formed by all souls
         const pt = palestineCalligraphy[i] || [800, 300];
@@ -349,9 +349,16 @@ export default function HumanInstancedMesh() {
       values[i*4]=x; values[i*4+1]=y; values[i*4+2]=z; values[i*4+3]=scale;
     }
     return values;
-  },[count,w,h,size.width,mode,number,palestinePoints,palestineCalligraphy,archiveRecords,visibleRecords,query,sort]);
+  },[count,w,h,size.width,mode,number,palestinePoints,palestineCalligraphy,archiveRecords,visibleRecords,query,sort,dispersed]);
 
+  const quietPalette = useMemo(() => {
+    const values = new Float32Array(count*3);
+    const inks = [new THREE.Color('#586b53'),new THREE.Color('#7d887a')];
+    for (let i=0; i<count; i++) inks[i%17===0 ? 0 : 1].toArray(values,i*3);
+    return values;
+  }, [count]);
   const palette = useMemo(() => {
+    if (mode === 'scatter' || mode === 'archivist') return quietPalette;
     const values = new Float32Array(count * 3);
     const color = new THREE.Color();
     for (let i=0; i<count; i++) {
@@ -378,14 +385,15 @@ export default function HumanInstancedMesh() {
         color.set(x < .3*(1-Math.abs(y-.5)*2) ? FLAG.red
           : y < 1/3 ? FLAG.black : y < 2/3 ? FLAG.white : FLAG.green);
       } else {
-        color.set(i % 17 === 0 ? '#586b53' : '#7d887a');
+        color.fromArray(quietPalette,i*3);
       }
 
       color.toArray(values, i*3);
 
     }
     return values;
-  }, [mode, count, number]);
+  }, [mode, count, number, quietPalette]);
+  const quietBlend = useRef(0);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -393,6 +401,7 @@ export default function HumanInstancedMesh() {
       mesh.current.instanceColor.array.set(palette);
       mesh.current.instanceColor.needsUpdate = true;
     } else mesh.current.instanceColor = new THREE.InstancedBufferAttribute(palette.slice(), 3);
+    quietBlend.current = 0;
     requestRender();
   }, [palette, count, requestRender]);
 
@@ -518,6 +527,13 @@ export default function HumanInstancedMesh() {
     const departing = mode === 'number' || mode === 'scatter' || mode === 'names' || mode === 'stats' || mode === 'archivist';
     // Unfold into main's suspended field as the reader leaves, then gather into the next chapter.
     const detach = !reduced && departing ? THREE.MathUtils.clamp((pState.chapterProgress-.13)*1.8,0,1) : 0;
+    const inkBlend = palette === quietPalette ? 0 : THREE.MathUtils.smoothstep(detach,.2,.9);
+    if (inkBlend !== quietBlend.current && mesh.current.instanceColor) {
+      const colours = mesh.current.instanceColor.array;
+      for (let i=0; i<palette.length; i++) colours[i] = palette[i]+(quietPalette[i]-palette[i])*inkBlend;
+      mesh.current.instanceColor.needsUpdate = true;
+      quietBlend.current = inkBlend;
+    }
     const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
     const travelling = !reduced && journey.current.active && progress < 1;
     if (!travelling) journey.current.active = false;

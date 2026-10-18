@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer budgets work independently of the display refresh rate. All five outgoing chapters progressively disperse into a cached free field with soft outward density as the reader leaves. Chapter changes gather into the next shape with the existing 900 ms eased morph. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
+The renderer budgets work independently of the display refresh rate. All five outgoing chapters progressively disperse into the cached quiet field shared with the living-register background as the reader leaves. Chapter changes gather into the next shape with the existing 900 ms eased morph. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
 
 ## Resource limits
 
@@ -12,7 +12,7 @@ The renderer budgets work independently of the display refresh rate. All five ou
 
 These hints are conservative, not a GPU benchmark. Actual count also depends on available records, and the caption reports that rendered sample. The full archive and exact statistics remain independent of the visual budget. WebGL-free reading/search and OS reduced motion remain available.
 
-One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and chapter-departure positions are cached; colour uploads occur only on formation/highlight changes, never departure or unchanged idle frames. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
+One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and chapter-departure positions are cached; colour uploads occur only on formation/highlight changes or a changing quiet-ink blend. Already-quiet modes skip redundant colour uploads; idle frames do no work. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
 
 ## Renderer optimization at commit 4c737b5
 
@@ -119,8 +119,14 @@ All 34 desktop/mobile browser cases pass in 49.6 seconds. Seven focused failures
 
 Using the same two-run production probe, scripting is 133.75 / 129.13 ms desktop and 304.56 / 351.04 ms with 4× mobile CPU throttling. Actual draws over 3.5 seconds are 208 / 207 desktop and 192 / 188 mobile, and all four runs have zero settled idle draws. Initial encoded JavaScript is 386,902 bytes. This session's browser RAF interval is approximately 16.7 ms; historical sessions ran at a different refresh cadence, and the new field also settles differently. These measurements confirm retained budgets, not a controlled speed-up over those earlier experiments or a physical-device guarantee.
 
-## Current free dispersion — 18 October 2026
+## Earlier free dispersion — superseded field, 18 October 2026
 
 The user rejected the intermediate motifs. All five departures now use one unstructured spread with soft outward density and varied figure sizes, preserving each chapter's palette. There are no discrete clusters, birds, drops or straight rectangular boundaries. Positions/scales are cached per viewport/count; the flight palette and ink-blend loop are deleted. The original progression/gathering timing, non-interactive archivist, hover gates, finale/footer boundary and device budgets remain.
 
 All 34 desktop/mobile browser cases pass (48.6 seconds), following four focused failures against 327a062. GPU checks require sparse bounding corners, progressive displacement, varied scales, unchanged departure colours, idle stop and reduced motion. The limited-resource test confirms zero departure colour uploads, 600 instances, the 30 fps ceiling and stopped idle rendering. Desktop/mobile captures of the number, map and tree departures show free dispersion, no page errors and no horizontal overflow. Lint, types, production build, strict UI audit and design-token lint pass. Historical timings above belong to their labelled geometries; this revision uses browser budget regressions and does not claim a new measured speed-up.
+
+## Current living-register reference — 18 October 2026
+
+Departure now reuses the exact quiet background behind «04 — سِجل الذاكرة الحيّة»: deterministic even positions spanning .92 viewport width and .86 of the .8-height stage, .025 figure scale and the existing two olive-grey inks. Both paths share the same geometry/scale cache and quiet palette. Complete chapter palettes remain; dispersal blends into quiet ink only while that blend changes. The map/archivist already use that ink, so they skip redundant colour uploads. All original timing, idle stop, reduced motion, picking restrictions and resource limits remain.
+
+All 34 desktop/mobile cases pass (52.8 seconds), after four focused failures against 5b001e2. GPU cases compare number/map departure positions, scale and ink directly with the archivist background. Low-resource cases retain 600 instances and the 30 fps ceiling, bound ink uploads during change, skip quiet-mode uploads and verify no idle paints/uploads. Desktop/mobile captures of number/map/tree departures and the archivist reference have no page errors or horizontal overflow. Lint, types, production build, strict UI audit and design-token lint pass. Existing footer/finale and complete-shape palette regressions also pass. This focused refinement makes no new cross-device timing claim.
