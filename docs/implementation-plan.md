@@ -77,8 +77,12 @@ Replace the connected ribbon with seven separated medium drops made from existin
 
 Restructure the closing paper footer into brand/count header, source and developer columns, and the existing motto. Use the official SVG from the published TFP press kit, served locally without edits, and preserve source credit/thanks and direct dataset links. Add babaqi.io prominently; make GitHub/LinkedIn quiet text links. Check actual logo loading, external-link safety, focus, English isolation and desktop/mobile/320px layout.
 
-## Alternating constellations/birds and finale boundary — 18 October
+## Earlier alternating constellations/birds and finale boundary — superseded field — 18 October
 
 Replace the rejected drops with alternating airy soul constellations and curved-wing bird flocks across the five chapter gaps. Preserve chapter inks in constellations; use deep olive/earth for birds. Cache positions, scales and palettes; keep the original departure curve, 900 ms morph, reduced motion, idle stop and resource ceilings. The archivist remains non-interactive. Verify GPU progression, alternate ink, varied scale, stopped uploads and resource limits.
 
 Keep the original finale centre until the footer approaches, then lift/clip the calligraphy above its top and hide past the masthead. Exclude footer picking. Organize the existing footer into brand/count header, aligned logo/source identity, source/developer columns and bottom motto/return link. Preserve all approved content/links and the official artwork. Check 320/390/820/1440px and production browser regressions.
+
+## Free dispersion — latest 18 October correction
+
+Remove the rejected constellations/birds and their ink transitions. Use one deterministic free spread with soft outward density and varied figure scales, without a rectangular edge or an intermediate pictorial shape. Preserve chapter palettes, all five departure/gathering passages, 900 ms morph, idle stop, reduced motion and settled-only picking. Preserve the approved footer arrangement and finale boundary. Verify sparse extremities, progressive spread/gathering, unchanged ink, no departure colour uploads and desktop/mobile resource limits.

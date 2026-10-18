@@ -133,10 +133,8 @@ export default function HumanInstancedMesh() {
   const journey = useRef({ active: false, started: 0 });
   const inspectionReady = useRef(false);
   const lastScrollInput = useRef(-Infinity);
-  const compact = size.width < 760;
-  const birdFlight = mode === 'scatter' || mode === 'stats';
-  const dispersed = useMemo(() => departureField(count, viewport.width, viewport.height, compact, birdFlight),
-    [count,viewport.width,viewport.height,compact,birdFlight]);
+  const dispersed = useMemo(() => departureField(count, viewport.width, viewport.height),
+    [count,viewport.width,viewport.height]);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -388,13 +386,6 @@ export default function HumanInstancedMesh() {
     }
     return values;
   }, [mode, count, number]);
-  const flightPalette = useMemo(() => {
-    const values = new Float32Array(count*3);
-    const inks = ['#2e4634','#536446','#6d5039'].map(ink => new THREE.Color(ink));
-    for (let i=0; i<count; i++) inks[(i%7)%inks.length].toArray(values,i*3);
-    return values;
-  }, [count]);
-  const flightBlend = useRef(0);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -402,7 +393,6 @@ export default function HumanInstancedMesh() {
       mesh.current.instanceColor.array.set(palette);
       mesh.current.instanceColor.needsUpdate = true;
     } else mesh.current.instanceColor = new THREE.InstancedBufferAttribute(palette.slice(), 3);
-    flightBlend.current = 0;
     requestRender();
   }, [palette, count, requestRender]);
 
@@ -528,13 +518,6 @@ export default function HumanInstancedMesh() {
     const departing = mode === 'number' || mode === 'scatter' || mode === 'names' || mode === 'stats' || mode === 'archivist';
     // Unfold into main's suspended field as the reader leaves, then gather into the next chapter.
     const detach = !reduced && departing ? THREE.MathUtils.clamp((pState.chapterProgress-.13)*1.8,0,1) : 0;
-    const inkBlend = birdFlight ? THREE.MathUtils.smoothstep(detach,.2,.9) : 0;
-    if (inkBlend !== flightBlend.current && mesh.current.instanceColor) {
-      const colours = mesh.current.instanceColor.array;
-      for (let i=0; i<palette.length; i++) colours[i] = palette[i]+(flightPalette[i]-palette[i])*inkBlend;
-      mesh.current.instanceColor.needsUpdate = true;
-      flightBlend.current = inkBlend;
-    }
     const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
     const travelling = !reduced && journey.current.active && progress < 1;
     if (!travelling) journey.current.active = false;
