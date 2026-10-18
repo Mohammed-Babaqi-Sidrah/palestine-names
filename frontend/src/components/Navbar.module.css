@@ -1,0 +1,54 @@
+.masthead:global(.masthead) {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(0, 2fr) minmax(90px, 1fr);
+}
+
+.masthead > :global(.wordmark) {
+  justify-self: start;
+}
+
+.masthead > :global(.header-actions) {
+  justify-self: end;
+}
+
+.remembrance {
+  margin: 0;
+  color: #7a2328;
+  font: 400 clamp(16px, 1.4vw, 20px)/1.65 var(--font-poetry);
+  text-align: center;
+  text-wrap: balance;
+}
+
+@media (max-width: 760px) {
+  .masthead:global(.masthead) {
+    height: 112px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 44px 44px;
+    gap: 4px 12px;
+    padding-block: 8px 12px;
+  }
+
+  .masthead > :global(.header-actions) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .remembrance {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: center;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .chapterIndex:global(.chapter-index) {
+    top: 122px;
+    max-height: calc(100svh - 142px);
+  }
+}
+
+@media (forced-colors: active) {
+  .remembrance {
+    color: CanvasText;
+  }
+}

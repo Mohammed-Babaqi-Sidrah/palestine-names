@@ -1,6 +1,5 @@
 'use client';
 import { useParticleStore } from '@/lib/particleStore';
-import styles from './FinaleWitnessNote.module.css';
 
 export default function QuietFinaleScene() {
   const total = useParticleStore(s => s.total);
@@ -31,13 +30,6 @@ export default function QuietFinaleScene() {
 
       {/* Breathing space for the 3D Palestine calligraphy formed by the martyrs */}
       <div className="finale-calligraphy-stage" data-particle-stage aria-hidden="true">{!calligraphy && <span className="calligraphy-fallback">فلسطين</span>}</div>
-
-      <div className={styles.note}>
-        <svg className={styles.drop} width="12" height="19" viewBox="0 0 12 19" fill="currentColor" aria-hidden="true" focusable="false">
-          <path d="M6 0C5 4.5 0 8.1 0 12.4A6 6 0 0 0 12 12.4C12 8.1 7 4.5 6 0Z" />
-        </svg>
-        <p>هؤلاء مَن وُثِّقَت أسماؤهم… وليسوا كلَّ مَن فقدنا.</p>
-      </div>
 
       {/* Minimalist Pro Colophon Bar */}
       <footer className="archive-colophon" role="contentinfo">
