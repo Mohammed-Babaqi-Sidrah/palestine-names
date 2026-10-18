@@ -20,10 +20,16 @@ export default function HumanParticleCanvas() {
   const mode=useParticleStore(s=>s.mode);
   const stage = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const sync = () => stage.current?.setAttribute('data-center-y', String(useParticleStore.getState().stageY));
+    const sync = () => {
+      if (!stage.current) return;
+      const state = useParticleStore.getState();
+      stage.current.setAttribute('data-center-y', String(state.stageY));
+      const footer = state.mode === 'finale' ? document.querySelector('.archive-colophon')?.getBoundingClientRect() : null;
+      stage.current.style.clipPath = footer ? `inset(0px 0px ${Math.max(0, window.innerHeight-footer.top)}px 0px)` : '';
+    };
     sync();
     // Position updates go straight to the renderer; avoid reconfiguring Canvas on every scroll.
-    return useParticleStore.subscribe((s,prev) => { if (s.stageY !== prev.stageY) sync(); });
+    return useParticleStore.subscribe((s,prev) => { if (s.stageY !== prev.stageY || s.scrollY !== prev.scrollY || s.mode !== prev.mode) sync(); });
   }, []);
   const [quality] = useState(() => particleQuality(window.innerWidth));
   const [supported] = useState(() => {

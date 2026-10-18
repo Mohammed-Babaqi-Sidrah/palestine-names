@@ -1,6 +1,6 @@
 # Particle performance — 15 October 2026
 
-The renderer budgets work independently of the display refresh rate. The first three shapes progressively disperse into a cached wide field as the reader leaves each chapter, following the original main progression. Chapter changes gather into the next shape with the existing 900 ms eased morph; the tree, quiet field and finale keep that later passage. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
+The renderer budgets work independently of the display refresh rate. All five outgoing chapters progressively disperse into cached alternating constellation/bird fields as the reader leaves. Chapter changes gather into the next shape with the existing 900 ms eased morph. Stopping holds the current pose and stops rendering once it settles. Reduced motion bypasses dispersal and snaps to complete shapes. The historical experiments below record the user's evolving motion brief; the final subsection describes the current contract.
 
 ## Resource limits
 
@@ -12,7 +12,7 @@ The renderer budgets work independently of the display refresh rate. The first t
 
 These hints are conservative, not a GPU benchmark. Actual count also depends on available records, and the caption reports that rendered sample. The full archive and exact statistics remain independent of the visual budget. WebGL-free reading/search and OS reduced motion remain available.
 
-One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and chapter-departure positions are cached; colour uploads occur on formation/highlight changes, rather than every frame. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
+One instanced render pass writes scale/translation directly into reusable matrices. Per-mode colours and chapter-departure positions are cached; colour uploads occur only on formation/highlight changes or a changed bird-ink blend, never unchanged idle frames. A coalesced timer enforces the paint budget, including on high-refresh displays. Settled and hidden pages stop painting. Markdown rendering code is requested only when an assistant answer exists.
 
 ## Renderer optimization at commit 4c737b5
 
@@ -99,7 +99,7 @@ All 34 desktop/mobile browser cases pass. Four focused checks failed against the
 
 The same two-run production scroll probe measures 169.17 / 171.50 ms scripting desktop and 747.28 / 772.38 ms with 4× mobile CPU throttling. Draws over 3.5 seconds are 209 / 210 and 209 / 209; all four runs have zero settled idle draws. Initial encoded JavaScript is 380,474 bytes. These local samples confirm the retained budgets; the lower durations are not evidence of a general speed improvement across physical devices.
 
-## Current blood drops and branded footer — 18 October 2026
+## Earlier blood drops and branded footer — superseded — 18 October 2026
 
 The departure field now contains seven separate medium blood drops formed by the existing figures. Profiles vary in width, height, tip lean, rotation and scale, with distinct staggered mobile positions. Geometry is cached per viewport/count. Three deep-red ink variants are also cached; the GPU colour buffer changes only when the departure blend changes, and returns to each chapter's approved palette. This retains the native progression, 900 ms morph, reduced-motion path, picking gates and instance/frame limits.
 
@@ -108,3 +108,13 @@ The footer uses a brand/count header, source/developer columns and the existing 
 All 34 desktop/mobile cases pass. Four focused checks failed against `1e0e336`, reproducing one connected ribbon and the missing official logo. New GPU checks identify separate groups and red ink while preserving spread extent, progression, gathering and zero idle work. The limited-hardware case verifies no colour uploads before the ink transition, bounded uploads when it changes, then no further colour uploads or paints at rest. Logo loading, personal/source links and 320px layout pass. Captures at 320, 390, 820 and 1440 px have no page errors or horizontal overflow. Lint, types, build, strict UI audit and token lint pass.
 
 The same two-run production probe records 163.08 / 163.22 ms scripting desktop and 778.07 / 775.47 ms with 4× mobile CPU throttling. Actual draws over 3.5 seconds are 208 / 210 desktop and 209 / 209 mobile, with zero settled idle draws in all runs. Initial encoded JavaScript is 386,452 bytes. This includes the standard image component and colour transition; it verifies retained budgets rather than a universal speed guarantee.
+
+## Current alternating constellations/birds and bounded finale — 18 October 2026
+
+All five outgoing gaps alternate soft, varied-scale constellations and seven curved-wing birds. Constellations retain chapter inks; birds blend to cached olive/earth inks. Positions/scales are computed only when viewport/count/field type changes. Per-frame interpolation stays allocation-free. The original departure curve, 900 ms chapter morph, non-interactive archivist, settled-only picking, reduced-motion snap and device limits remain.
+
+The finale holds its original centre behind the poetry until the footer approaches, then lifts above the paper. An immediate CSS clip prevents easing from leaving figures over the footer; the canvas hides as the paper passes the masthead. Footer picking is excluded. The source logo/heading share an aligned row, columns stack on mobile and the return link moves beside the bottom motto. The official logo asset and all approved content/links are preserved.
+
+All 34 desktop/mobile browser cases pass in 49.6 seconds. Seven focused failures reproduced the old red ink, unnecessary constellation colour uploads, footer overlap and narrow source-row wrapping against d36fb1d before rebuilding. GPU cases verify preserved constellation colours, varied scales, olive/earth flight ink, progressive spread/gathering, stopped idle work and reduced motion. The 600-instance fixture verifies unchanged constellation colours, bounded flight uploads and no further uploads/paints at rest. Captures at 320, 390, 820 and 1440 px confirm loaded logos, clear footer boundaries, clip reset on returning to another chapter, no page errors and no horizontal overflow. Desktop/mobile passage through all five outgoing gaps was also exercised. Lint, types, production build, strict UI audit and design-token lint pass; source review found no Important/Critical issues.
+
+Using the same two-run production probe, scripting is 133.75 / 129.13 ms desktop and 304.56 / 351.04 ms with 4× mobile CPU throttling. Actual draws over 3.5 seconds are 208 / 207 desktop and 192 / 188 mobile, and all four runs have zero settled idle draws. Initial encoded JavaScript is 386,902 bytes. This session's browser RAF interval is approximately 16.7 ms; historical sessions ran at a different refresh cadence, and the new field also settles differently. These measurements confirm retained budgets, not a controlled speed-up over those earlier experiments or a physical-device guarantee.

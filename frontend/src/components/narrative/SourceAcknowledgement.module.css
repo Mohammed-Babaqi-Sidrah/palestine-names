@@ -15,8 +15,9 @@
 .returnTop { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 12px; color: var(--accent-green); white-space: nowrap; }
 .body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 40px; padding-block: 28px; }
 .source { min-width: 0; color: var(--text-secondary); }
-.sourceBrand { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 14px; }
-.logo { display: block; width: 160px; height: auto; }
+.sourceBrand { display: grid; grid-template-columns: 160px minmax(0, 1fr); align-items: center; gap: 24px; margin-bottom: 18px; }
+.logoFrame { display: block; position: relative; width: 160px; height: 60px; overflow: hidden; }
+.logo { display: block; position: absolute; width: 250px; height: auto; max-width: none; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .source h3 { color: var(--accent-green); font: 400 25px/1.5 var(--font-poetry); }
 .sourceBrand bdi { font-size: 12px; white-space: nowrap; }
 .source p { font-size: 14px; line-height: 1.95; }
@@ -30,18 +31,22 @@
 .website { display: inline-flex; align-items: center; gap: 16px; min-height: 48px; margin-top: 8px; color: var(--accent-green); font: 24px/1.5 var(--font-mono); }
 .website:hover { text-decoration: underline; text-underline-offset: 6px; }
 .socials { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 12px; }
-.bottom { padding-top: 18px; border-top: 1px solid var(--border-paper); color: var(--text-secondary); text-align: center; font: 9px/1.8 var(--font-mono); letter-spacing: .06em; }
+.bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-paper); color: var(--text-secondary); }
+.bottom > span { font: 9px/1.8 var(--font-mono); letter-spacing: .06em; }
 
 @media (max-width: 760px) {
   .footer:global(.archive-colophon) { padding: 24px 22px 18px; }
-  .header { flex-direction: column; gap: 8px; text-align: center; padding-bottom: 18px; }
+  .header { padding-bottom: 20px; }
   .identity strong { font-size: 30px; }
   .body { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 24px; }
-  .source { text-align: center; }
-  .sourceBrand { justify-content: center; gap: 12px 18px; }
-  .logo { width: 144px; }
-  .source h3 { font-size: 23px; }
-  .developer { align-items: center; border-inline-start: 0; border-block-start: 1px solid var(--border-paper); padding-inline-start: 0; padding-top: 24px; text-align: center; }
+  .source { text-align: start; }
+  .sourceBrand { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
+  .logoFrame { width: 112px; height: 48px; }
+  .logo { width: 176px; }
+  .source h3 { font-size: 21px; }
+  .sourceBrand bdi { font-size: 11px; }
+  .developer { border-inline-start: 0; border-block-start: 1px solid var(--border-paper); padding-inline-start: 0; padding-top: 24px; }
+  .bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 @media (forced-colors: active) {
   .footer a { color: LinkText; text-decoration-color: currentColor; }

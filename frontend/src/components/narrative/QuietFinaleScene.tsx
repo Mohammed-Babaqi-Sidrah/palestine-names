@@ -39,16 +39,12 @@ export default function QuietFinaleScene() {
             <strong>أسماء لا تُنسى</strong>
             <p>{total !== null ? `${total.toLocaleString('ar-EG')} إنساناً موثقاً بالاسم.` : 'أرشيف تفاعلي تخليداً لأرواح شهداء فلسطين.'}</p>
           </div>
-          <a className={styles.returnTop} href="#number" aria-label="العودة إلى بداية الأرشيف">
-            العودة إلى البداية
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6" /></svg>
-          </a>
         </div>
 
         <div className={styles.body}>
           <section className={styles.source} aria-labelledby="names-source-title">
             <div className={styles.sourceBrand}>
-              <a href="https://data.techforpalestine.org/docs/killed-in-gaza/" target="_blank" rel="noopener noreferrer" aria-label="Tech For Palestine">
+              <a className={styles.logoFrame} href="https://data.techforpalestine.org/docs/killed-in-gaza/" target="_blank" rel="noopener noreferrer" aria-label="Tech For Palestine">
                 <Image className={styles.logo} src="/logos/tech-for-palestine.svg" width={1920} height={1080} alt="شعار Tech For Palestine" unoptimized />
               </a>
               <div><h3 id="names-source-title">مصدر الأسماء</h3><bdi lang="en" dir="ltr">Tech For Palestine</bdi></div>
@@ -71,7 +67,13 @@ export default function QuietFinaleScene() {
             </div>
           </div>
         </div>
-        <div className={styles.bottom} lang="en" dir="ltr">TO REMEMBER · IS TO KEEP A NAME ALIVE</div>
+        <div className={styles.bottom}>
+          <span lang="en" dir="ltr">TO REMEMBER · IS TO KEEP A NAME ALIVE</span>
+          <a className={styles.returnTop} href="#number" aria-label="العودة إلى بداية الأرشيف">
+            العودة إلى البداية
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M12 20V4m-6 6 6-6 6 6" /></svg>
+          </a>
+        </div>
       </footer>
     </section>
   );

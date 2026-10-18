@@ -27,7 +27,7 @@ export function useScrollStory() {
       // The souls stay suspended in the viewport while chapters scroll behind them.
       const vw = window.innerWidth;
       const mobile = vw < 760;
-      let x = .5, y = .5, width = 1, height = .8;
+      let x = .5, y = .5, width = 1, height = .8, visible = true;
       if (active.mode === 'scatter') {
         x = mobile ? .5 : .37; y = .53; width = mobile ? .9 : .58; height = .84;
       } else if (active.mode === 'stats') {
@@ -35,6 +35,13 @@ export function useScrollStory() {
       } else if (active.mode === 'finale') {
         // Original main-branch centre: calligraphy stands behind the closing prose.
         y = mobile ? .54 : .51; height = .5;
+        const footer = section?.querySelector('.archive-colophon')?.getBoundingClientRect();
+        if (footer) {
+          const halfCalligraphy = vw * (mobile ? 1.05 : .88) * .375 / 2;
+          y = Math.min(y, (footer.top-halfCalligraphy-24)/vh);
+          const mastheadBottom = document.querySelector('header.masthead')?.getBoundingClientRect().bottom || 0;
+          visible = footer.top > mastheadBottom+24;
+        }
       }
       const progress = rect ? Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - vh * .3))) : 0;
       const scrollHeight = Math.max(1, document.documentElement.scrollHeight - vh);
@@ -44,7 +51,7 @@ export function useScrollStory() {
         scrollY: window.scrollY,
         stageWidth: vw * width, stageHeight: vh * height,
         stageX: vw * x, stageY: vh * y,
-        stageVisible: true,
+        stageVisible: visible,
       });
     };
     const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(sync); };

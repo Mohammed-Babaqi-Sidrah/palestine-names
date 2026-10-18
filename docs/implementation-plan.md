@@ -71,8 +71,14 @@ Preserve the approved motion and replace only the uniform rectangular spread wit
 
 Add source acknowledgement and Arabic thanks inside the existing finale colophon. Credit Ministry lists via Tech For Palestine with direct documentation/repository links, English bidi isolation and safe new tabs. Reuse the original paper, rule, olive heading and prose styles; verify the source row and links at 320px/mobile/desktop. Leave the approved pipeline and live provenance note intact.
 
-## Final blood drops, official source logo and personal footer — 18 October
+## Earlier blood drops, official source logo and personal footer — superseded field — 18 October
 
 Replace the connected ribbon with seven separated medium drops made from existing figures. Vary silhouette, tilt and scale; use a staggered mobile arrangement. Cache geometry and dark-red inks, blend colour only during departure, and retain the approved morph, chapter palettes, reduced-motion path, hover gates and resource budgets. GPU regressions must identify separate groups and red ink while preserving progression and idle stop.
 
 Restructure the closing paper footer into brand/count header, source and developer columns, and the existing motto. Use the official SVG from the published TFP press kit, served locally without edits, and preserve source credit/thanks and direct dataset links. Add babaqi.io prominently; make GitHub/LinkedIn quiet text links. Check actual logo loading, external-link safety, focus, English isolation and desktop/mobile/320px layout.
+
+## Alternating constellations/birds and finale boundary — 18 October
+
+Replace the rejected drops with alternating airy soul constellations and curved-wing bird flocks across the five chapter gaps. Preserve chapter inks in constellations; use deep olive/earth for birds. Cache positions, scales and palettes; keep the original departure curve, 900 ms morph, reduced motion, idle stop and resource ceilings. The archivist remains non-interactive. Verify GPU progression, alternate ink, varied scale, stopped uploads and resource limits.
+
+Keep the original finale centre until the footer approaches, then lift/clip the calligraphy above its top and hide past the masthead. Exclude footer picking. Organize the existing footer into brand/count header, aligned logo/source identity, source/developer columns and bottom motto/return link. Preserve all approved content/links and the official artwork. Check 320/390/820/1440px and production browser regressions.

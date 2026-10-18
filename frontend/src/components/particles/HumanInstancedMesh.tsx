@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useParticleStore } from '@/lib/particleStore';
 import { particleQuality } from '@/lib/particleQuality';
-import { bloodDropField, particleRandom as random } from '@/lib/particleDispersal';
+import { departureField, particleRandom as random } from '@/lib/particleDispersal';
 const CHAPTER_TRAVEL_MS = 900;
 const FLAG = { red: '#a52b28', green: '#1c6840', white: '#bbb7ad', black: '#151a16' };
 const FINALE_FLAG = ['#e4312b', '#149954', '#ffffff', '#1e221e'];
@@ -134,8 +134,9 @@ export default function HumanInstancedMesh() {
   const inspectionReady = useRef(false);
   const lastScrollInput = useRef(-Infinity);
   const compact = size.width < 760;
-  const dispersed = useMemo(() => bloodDropField(count, viewport.width, viewport.height, compact),
-    [count,viewport.width,viewport.height,compact]);
+  const birdFlight = mode === 'scatter' || mode === 'stats';
+  const dispersed = useMemo(() => departureField(count, viewport.width, viewport.height, compact, birdFlight),
+    [count,viewport.width,viewport.height,compact,birdFlight]);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;
@@ -387,13 +388,13 @@ export default function HumanInstancedMesh() {
     }
     return values;
   }, [mode, count, number]);
-  const bloodPalette = useMemo(() => {
+  const flightPalette = useMemo(() => {
     const values = new Float32Array(count*3);
-    const inks = ['#8b2530','#a33138','#741d27'].map(ink => new THREE.Color(ink));
+    const inks = ['#2e4634','#536446','#6d5039'].map(ink => new THREE.Color(ink));
     for (let i=0; i<count; i++) inks[(i%7)%inks.length].toArray(values,i*3);
     return values;
   }, [count]);
-  const bloodBlend = useRef(0);
+  const flightBlend = useRef(0);
   useLayoutEffect(() => {
     if (!mesh.current) return;
     mesh.current.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -401,7 +402,7 @@ export default function HumanInstancedMesh() {
       mesh.current.instanceColor.array.set(palette);
       mesh.current.instanceColor.needsUpdate = true;
     } else mesh.current.instanceColor = new THREE.InstancedBufferAttribute(palette.slice(), 3);
-    bloodBlend.current = 0;
+    flightBlend.current = 0;
     requestRender();
   }, [palette, count, requestRender]);
 
@@ -443,7 +444,7 @@ export default function HumanInstancedMesh() {
     const isInteractive = (target: EventTarget | null) => {
       const el = target as Element | null;
       return Boolean(
-        el && el.closest('button, a, input, select, textarea, .stat-trio-card, .generations-spectrum-container, .stats-bottom-ribbon, .one-record, .card, .chat-interface, .archivist-input-wrap, [role="button"]')
+        el && el.closest('button, a, input, select, textarea, .stat-trio-card, .generations-spectrum-container, .stats-bottom-ribbon, .one-record, .card, .chat-interface, .archivist-input-wrap, .archive-colophon, [role="button"]')
       );
     };
 
@@ -524,15 +525,15 @@ export default function HumanInstancedMesh() {
     if(!mesh.current || !count) return;
     const pState = useParticleStore.getState();
     if (!pState.stageVisible || document.hidden) return;
-    const departing = mode === 'number' || mode === 'scatter' || mode === 'names';
+    const departing = mode === 'number' || mode === 'scatter' || mode === 'names' || mode === 'stats' || mode === 'archivist';
     // Unfold into main's suspended field as the reader leaves, then gather into the next chapter.
     const detach = !reduced && departing ? THREE.MathUtils.clamp((pState.chapterProgress-.13)*1.8,0,1) : 0;
-    const inkBlend = THREE.MathUtils.smoothstep(detach,.2,.9);
-    if (inkBlend !== bloodBlend.current && mesh.current.instanceColor) {
+    const inkBlend = birdFlight ? THREE.MathUtils.smoothstep(detach,.2,.9) : 0;
+    if (inkBlend !== flightBlend.current && mesh.current.instanceColor) {
       const colours = mesh.current.instanceColor.array;
-      for (let i=0; i<palette.length; i++) colours[i] = palette[i]+(bloodPalette[i]-palette[i])*inkBlend;
+      for (let i=0; i<palette.length; i++) colours[i] = palette[i]+(flightPalette[i]-palette[i])*inkBlend;
       mesh.current.instanceColor.needsUpdate = true;
-      bloodBlend.current = inkBlend;
+      flightBlend.current = inkBlend;
     }
     const progress = Math.min(1, (now-journey.current.started)/CHAPTER_TRAVEL_MS);
     const travelling = !reduced && journey.current.active && progress < 1;
@@ -542,7 +543,7 @@ export default function HumanInstancedMesh() {
     const offsetX = (pState.stageX / size.width - .5) * viewport.width;
     const offsetY = (.5 - pState.stageY / size.height) * viewport.height;
     const factor = reduced ? 1 : 1-Math.exp(-Math.min(delta,.05)*8);
-    const formed = departing || mode === 'stats' || mode === 'finale';
+    const formed = mode !== 'archivist' && (departing || mode === 'finale');
     const scrolling = now-lastScrollInput.current < 120;
     let unsettled=travelling || (formed && detach===0 && scrolling);
     let positionsUnsettled=false;
@@ -587,9 +588,9 @@ export default function HumanInstancedMesh() {
       // Interpolate in world space, including the anchor, to avoid chapter jumps.
       tx += offsetX;
       ty += offsetY;
-      tx = THREE.MathUtils.lerp(tx,dispersed[i*2],detach);
-      ty = THREE.MathUtils.lerp(ty,dispersed[i*2+1],detach);
-      ts = THREE.MathUtils.lerp(ts,.095,detach);
+      tx = THREE.MathUtils.lerp(tx,dispersed.points[i*2],detach);
+      ty = THREE.MathUtils.lerp(ty,dispersed.points[i*2+1],detach);
+      ts = THREE.MathUtils.lerp(ts,dispersed.scales[i],detach);
 
       // Hover feedback: smooth elevation and scale
       if(i===pick) {

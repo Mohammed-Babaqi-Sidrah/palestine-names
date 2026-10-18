@@ -155,6 +155,7 @@ test('souls progressively disperse before the next shape and stop rendering at r
   await expect.poll(() => page.evaluate(() => window.meshMatrices.length)).toBe(128 * 16);
   await page.waitForTimeout(1500);
   const formed = await page.evaluate(() => window.meshMatrices);
+  const originalPalette = await page.evaluate(() => window.meshPalette);
   const displacement = (reference: number[]) => page.evaluate(previous => {
     let squared = 0;
     for (let i = 0; i < window.meshMatrices.length; i += 16) {
@@ -187,32 +188,14 @@ test('souls progressively disperse before the next shape and stop rendering at r
     for (let i = 0; i < window.meshMatrices.length; i += 16) {
       xs.push(window.meshMatrices[i + 12]); ys.push(window.meshMatrices[i + 13]);
     }
-    const seen = new Set<number>(), clusters: number[] = [];
-    const separation = Math.min(window.innerWidth, window.innerHeight) * .085;
-    for (let i = 0; i < xs.length; i++) {
-      if (seen.has(i)) continue;
-      const pending = [i]; seen.add(i); let members = 0;
-      while (pending.length) {
-        const current = pending.pop()!; members++;
-        for (let j = 0; j < xs.length; j++) {
-          if (!seen.has(j) && Math.hypot(xs[current] - xs[j], ys[current] - ys[j]) * 100 < separation) {
-            seen.add(j); pending.push(j);
-          }
-        }
-      }
-      clusters.push(members);
-    }
     return { width: (Math.max(...xs) - Math.min(...xs)) * 100, height: (Math.max(...ys) - Math.min(...ys)) * 100,
-      clusters: clusters.filter(size => size >= 8), largestCluster: Math.max(...clusters) / xs.length,
-      red: window.meshPalette.filter((r, i) => i % 3 === 0 && r > window.meshPalette[i+1] * 3 && r > window.meshPalette[i+2] * 2).length };
+      scales: window.meshMatrices.filter((_, i) => i % 16 === 0) };
   });
   expect(spread.width).toBeGreaterThan(page.viewportSize()!.width * .7);
   expect(spread.height).toBeGreaterThan(page.viewportSize()!.height * .45);
-  // Separate medium drops must not collapse into one ribbon or an undifferentiated cloud.
-  expect(spread.clusters.length).toBeGreaterThanOrEqual(5);
-  expect(spread.clusters.length).toBeLessThanOrEqual(9);
-  expect(spread.largestCluster).toBeLessThan(.3);
-  expect(spread.red).toBe(128);
+  // Airy constellations retain the chapter's ink and vary the individual souls' scale.
+  expect(await page.evaluate(() => window.meshPalette)).toEqual(originalPalette);
+  expect(Math.max(...spread.scales) - Math.min(...spread.scales)).toBeGreaterThan(.035);
   const settledUploads = await page.evaluate(() => window.meshY.length);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(settledUploads);
@@ -245,10 +228,28 @@ test('souls progressively disperse before the next shape and stop rendering at r
   expect(await displacement(cloud)).toBeGreaterThan(.2);
   expect(await page.evaluate(() => Math.max(...window.meshMatrices.filter((_, i) => i % 16 === 0)))).toBeLessThan(.094);
 
+  await scrollProgress('crowd', .7);
+  await page.waitForTimeout(1600);
+  const birds = await page.evaluate(() => ({
+    palette: window.meshPalette,
+    scales: window.meshMatrices.filter((_, i) => i % 16 === 0),
+    uploads: window.meshY.length,
+  }));
+  // The alternate departure uses olive/earth ink, never the rejected blood-red field.
+  for (let i = 0; i < birds.palette.length; i += 3) {
+    const [r, g, b] = birds.palette.slice(i, i + 3);
+    expect(Math.max(r, g)).toBeGreaterThan(b * 1.2);
+    expect(r).toBeLessThan(g * 2.5);
+  }
+  expect(Math.max(...birds.scales) - Math.min(...birds.scales)).toBeGreaterThan(.01);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.meshY.length)).toBe(birds.uploads);
+
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
+  await page.waitForTimeout(200);
   const reducedBefore = await page.evaluate(() => window.meshMatrices);
-  await scrollProgress('crowd', .7);
+  await scrollProgress('crowd', .2);
   await expect(page.locator('#human-particle-canvas')).toHaveAttribute('data-scene', 'scatter');
   await page.waitForTimeout(200);
   expect(await displacement(reducedBefore)).toBeLessThan(.02);
@@ -288,6 +289,18 @@ test('Palestine keeps its centre and the remembrance note stays in the responsiv
     expect(layout.bottom).toBeLessThanOrEqual(layout.headerBottom + 1);
     expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth);
   }
+  const beforeFooter = Number(await mesh.getAttribute('data-center-y'));
+  await page.locator('.archive-colophon').evaluate(el => window.scrollTo({
+    top: el.getBoundingClientRect().top + window.scrollY - window.innerHeight * .45, behavior: 'instant',
+  }));
+  await expect.poll(async () => Number(await mesh.getAttribute('data-center-y'))).toBeLessThan(beforeFooter - 30);
+  const boundary = await mesh.evaluate(el => {
+    const clip = getComputedStyle(el).clipPath.match(/inset\(0px 0px ([\d.]+)px/);
+    return { bottom: clip ? Number(clip[1]) : -1,
+      footer: document.querySelector('.archive-colophon')!.getBoundingClientRect().top, height: window.innerHeight };
+  });
+  expect(boundary.bottom).toBeGreaterThan(0);
+  expect(boundary.height - boundary.bottom).toBeLessThanOrEqual(boundary.footer + 1);
 });
 
 test('source acknowledgement credits and thanks Tech For Palestine clearly on narrow screens', async ({ page, isMobile }) => {
@@ -312,12 +325,16 @@ test('source acknowledgement credits and thanks Tech For Palestine clearly on na
       const style = getComputedStyle(p);
       return { font: parseFloat(style.fontSize), line: parseFloat(style.lineHeight) };
     });
-    return { left: rect.left, right: rect.right, viewport: window.innerWidth, pageWidth: document.documentElement.scrollWidth, paragraphs };
+    const logo = el.querySelector('img')!.closest('a')!.getBoundingClientRect();
+    const identity = el.querySelector('h3')!.parentElement!.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, viewport: window.innerWidth, pageWidth: document.documentElement.scrollWidth, paragraphs,
+      brandOffset: Math.abs(logo.top + logo.height / 2 - identity.top - identity.height / 2) };
   });
   expect(layout.left).toBeGreaterThanOrEqual(0);
   expect(layout.right).toBeLessThanOrEqual(layout.viewport);
   expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewport);
   expect(layout.paragraphs).toHaveLength(2);
+  expect(layout.brandOffset).toBeLessThan(4);
   for (const paragraph of layout.paragraphs) {
     expect(paragraph.font).toBeGreaterThanOrEqual(12);
     expect(paragraph.line).toBeGreaterThanOrEqual(paragraph.font * 1.4);
@@ -384,15 +401,14 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   const settled = await page.evaluate(() => window.particleProbe.draws);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(settled);
-  // Early departure preserves flag colours; entering the blood phase uploads its new ink once.
+  // Constellations keep the flag palette throughout departure, without colour uploads.
   await page.evaluate(() => window.scrollTo({ top: 400, behavior: 'instant' }));
   await page.waitForTimeout(1400);
-  const bloodPhase = await page.evaluate(() => ({ ...window.particleProbe }));
-  expect(bloodPhase.colorUploads).toBeGreaterThan(0);
-  expect(bloodPhase.colorUploads).toBeLessThanOrEqual(bloodPhase.draws);
+  const constellationPhase = await page.evaluate(() => ({ ...window.particleProbe }));
+  expect(constellationPhase.colorUploads).toBe(0);
   await page.waitForTimeout(350);
-  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(bloodPhase.colorUploads);
-  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(bloodPhase.draws);
+  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(0);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(constellationPhase.draws);
   await page.evaluate(() => {
     window.particleProbe.draws = 0;
     const chapter = document.querySelector('#crowd')!;
@@ -405,6 +421,17 @@ test('low-resource devices receive a bounded field that stops rendering when idl
   expect(transitionDraws).toBeLessThanOrEqual(40);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.particleProbe.draws)).toBe(transitionDraws);
+  await page.locator('#crowd').evaluate(el => {
+    window.particleProbe.draws = 0; window.particleProbe.colorUploads = 0;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY + .7 * (el.getBoundingClientRect().height - innerHeight * .3), behavior: 'instant' });
+  });
+  await page.waitForTimeout(1400);
+  const flight = await page.evaluate(() => ({ ...window.particleProbe }));
+  expect(flight.colorUploads).toBeGreaterThan(0);
+  expect(flight.colorUploads).toBeLessThanOrEqual(flight.draws);
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.particleProbe.draws)).toBe(flight.draws);
+  expect(await page.evaluate(() => window.particleProbe.colorUploads)).toBe(flight.colorUploads);
 });
 
 test('number keeps muted flag colors while Palestine restores its original palette', async ({ page }) => {
