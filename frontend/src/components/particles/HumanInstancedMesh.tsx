@@ -136,10 +136,19 @@ export default function HumanInstancedMesh() {
   const journey = useRef({ active: false, started: 0 });
   const inspectionReady = useRef(false);
   const lastScrollInput = useRef(-Infinity);
-  // Main's wide departure field, cached outside the render loop and centred on the viewport.
-  const dispersed = useMemo(() => Float32Array.from({ length: count*2 }, (_, k) => k%2
-    ? (random(Math.floor(k/2),1)-.5)*viewport.height*.58
-    : (random(Math.floor(k/2))-.5)*viewport.width*.85), [count,viewport.width,viewport.height]);
+  // A curved, tapering current of souls, cached once; no rectangular boundary or idle drift.
+  const dispersed = useMemo(() => {
+    const points = new Float32Array(count*2);
+    for (let i=0; i<count; i++) {
+      const t = random(i)*2-1;
+      const taper = (1-t*t)**.65;
+      // Layered noise keeps most figures near the current, with softer scattered edges.
+      const haze = (random(i,1)+random(i,2)+random(i,3)-1.5)/1.5;
+      points[i*2] = (t*.42+haze*taper*.025)*viewport.width;
+      points[i*2+1] = (Math.sin(t*Math.PI*.9)*.15+t*.08+haze*taper*.16)*viewport.height;
+    }
+    return points;
+  }, [count,viewport.width,viewport.height]);
   const pointer = useRef({ x: -9999, y: -9999 });
   const hovered = useRef(-1);
   const w = (stageWidth || size.width) * viewport.width / size.width;

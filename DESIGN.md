@@ -82,6 +82,12 @@ Keep the opening number's darker flag inks: red #a52b28, green #1c6840, bone whi
 
 Place the exact remembrance sentence «هؤلاء مَن وُثِّقَت أسماؤهم… وليسوا كلَّ مَن فقدنا.» in the navbar, replacing its centre ambient label. Use deep red #7a2328 Amiri ink with no drop or other blood icon. Preserve the brand, progress rule, index control and drawer. The header remains 88px on desktop and uses a stable 112px two-row layout at widths up to 760px, with the drawer below it. Keep readable Arabic wrapping, visible focus and forced-colour support; do not repeat the note before the finale colophon.
 
+## Organic departure field and source acknowledgement — 18 October
+
+The user approved the existing dispersal/gathering and requested only a more organic silhouette. Replace the rectangular spread with a broad flowing S-curve, tapered ends and softly scattered edges. Cache the distribution once per count/viewport. Keep the approved departure curve, chapter morphs, settled-only interaction, colours, resource budgets and idle behavior.
+
+Credit Gaza Ministry of Health lists as made available through Tech For Palestine, linking directly to the dataset documentation and repository. Add a quiet full-width row inside the closing colophon: olive Amiri heading «مصدر الأسماء», concise provenance and Arabic thanks to contributors for documenting names and preserving memory. Reuse the paper surface, a single dividing rule and existing type/colour tokens; stack naturally on mobile. Isolate the English project name, keep links keyboard accessible and retain the live provenance/status note. Do not imply a partnership, complete coverage or a new source date.
+
 ## Age display and assistant seal — 15 October
 
 Round displayed age summaries (average and median) to whole years. Record ages are already whole years from the validated source. Preserve exact counts, decimal percentages and the underlying API statistics. Keep missing ages as unknown and infants as under one year.

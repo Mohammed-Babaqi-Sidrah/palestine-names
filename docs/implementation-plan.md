@@ -64,3 +64,9 @@ Allow hover/tap only on settled, complete shapes. Block picking during scroll in
 Keep the opening number's dark flag inks (#a52b28, #1c6840, #bbb7ad, #151a16), spatial bands/red triangle and reduced paper wash. Restore the finale's original palette (#e4312b, #149954, #fff, #1e221e), colour arrangement and default paper wash. Add no glow or extra render pass.
 
 Move «هؤلاء مَن وُثِّقَت أسماؤهم… وليسوا كلَّ مَن فقدنا.» from the finale into the navbar's centre label position, in deep red #7a2328 Amiri ink with no drop. Preserve the brand, index control/drawer, progress rule and focus treatment. Keep an 88px desktop header and a stable 112px two-row mobile header, position the drawer below it, and verify readable Arabic wrapping with no clipping or overflow at 320px, 390px and desktop widths. Regressions should verify settled-only picking, original-main departure geometry, unchanged later morphs and separate opening/finale palettes; do not treat earlier historical test counts as proof of the current revision.
+
+## Final scoped refinement — organic spread and source thanks, 18 October
+
+Preserve the approved motion and replace only the uniform rectangular spread with a cached broad S-curve, tapered ends and softly scattered edges. Keep all per-frame behavior, colours, hover gates and device budgets. Verify actual GPU occupancy follows the curved field while the existing extent, progress, gathering and idle regressions remain green.
+
+Add source acknowledgement and Arabic thanks inside the existing finale colophon. Credit Ministry lists via Tech For Palestine with direct documentation/repository links, English bidi isolation and safe new tabs. Reuse the original paper, rule, olive heading and prose styles; verify the source row and links at 320px/mobile/desktop. Leave the approved pipeline and live provenance note intact.

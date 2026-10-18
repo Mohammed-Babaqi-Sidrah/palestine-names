@@ -1,5 +1,6 @@
 'use client';
 import { useParticleStore } from '@/lib/particleStore';
+import styles from './SourceAcknowledgement.module.css';
 
 export default function QuietFinaleScene() {
   const total = useParticleStore(s => s.total);
@@ -89,6 +90,22 @@ export default function QuietFinaleScene() {
             TO REMEMBER · IS TO KEEP A NAME ALIVE
           </span>
         </div>
+
+        <section className={styles.source} aria-labelledby="names-source-title">
+          <h3 id="names-source-title">مصدر الأسماء</h3>
+          <div>
+            <p>
+              تعتمد أسماء هذا الأرشيف على قوائم وزارة الصحة في غزة، كما يتيحها مشروع{' '}
+              <a href="https://data.techforpalestine.org/docs/killed-in-gaza/" target="_blank" rel="noopener noreferrer">
+                <bdi lang="en" dir="ltr">Tech For Palestine</bdi>
+              </a>.{' '}
+              <a className={styles.repository} href="https://github.com/TechForPalestine/palestine-datasets" target="_blank" rel="noopener noreferrer">مستودع البيانات المفتوح</a>
+            </p>
+            <p className={styles.thanks}>
+              شكرًا للقائمين على المشروع ولكلّ مَن يسهم في توثيق الأسماء وصون الذاكرة.
+            </p>
+          </div>
+        </section>
       </footer>
     </section>
   );

@@ -1,0 +1,60 @@
+.source {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(112px, .35fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px 32px;
+  min-width: 0;
+  padding-block-start: 24px;
+  border-block-start: 1px solid var(--border-paper);
+  color: var(--text-secondary);
+  text-align: start;
+}
+
+.source h3 {
+  color: var(--accent-green);
+  font: 400 25px/1.5 var(--font-poetry);
+}
+
+.source p {
+  font-size: 13px;
+  line-height: 1.95;
+}
+
+.source a {
+  color: var(--accent-green);
+  text-decoration: underline;
+  text-decoration-color: var(--border-medium);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.source a:hover {
+  text-decoration-color: currentColor;
+}
+
+.source .thanks {
+  margin-block-start: 8px;
+  color: var(--text-primary);
+  font: 400 19px/1.8 var(--font-poetry);
+  text-wrap: balance;
+}
+
+.repository {
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .source {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+@media (forced-colors: active) {
+  .source a {
+    color: LinkText;
+    text-decoration-color: currentColor;
+  }
+}

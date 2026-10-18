@@ -185,10 +185,23 @@ test('souls progressively disperse before the next shape and stop rendering at r
     for (let i = 0; i < window.meshMatrices.length; i += 16) {
       xs.push(window.meshMatrices[i + 12]); ys.push(window.meshMatrices[i + 13]);
     }
-    return { width: (Math.max(...xs) - Math.min(...xs)) * 100, height: (Math.max(...ys) - Math.min(...ys)) * 100 };
+    const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
+    const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
+    let covariance = 0, varianceX = 0, varianceY = 0, opposingCorners = 0;
+    for (let i = 0; i < xs.length; i++) {
+      covariance += (xs[i] - meanX) * (ys[i] - meanY);
+      varianceX += (xs[i] - meanX) ** 2; varianceY += (ys[i] - meanY) ** 2;
+      const x = xs[i] * 100 / window.innerWidth, y = ys[i] * 100 / window.innerHeight;
+      if ((x < -.25 && y > .15) || (x > .25 && y < -.15)) opposingCorners++;
+    }
+    return { width: (Math.max(...xs) - Math.min(...xs)) * 100, height: (Math.max(...ys) - Math.min(...ys)) * 100,
+      opposingCornerShare: opposingCorners / xs.length, correlation: covariance / Math.sqrt(varianceX * varianceY) };
   });
   expect(spread.width).toBeGreaterThan(page.viewportSize()!.width * .7);
   expect(spread.height).toBeGreaterThan(page.viewportSize()!.height * .45);
+  // A curved ribbon leaves opposing box corners sparse rather than filling a rectangle.
+  expect(spread.opposingCornerShare).toBeLessThan(.03);
+  expect(spread.correlation).toBeGreaterThan(.5);
   const settledUploads = await page.evaluate(() => window.meshY.length);
   await page.waitForTimeout(350);
   expect(await page.evaluate(() => window.meshY.length)).toBe(settledUploads);
@@ -263,6 +276,34 @@ test('Palestine keeps its centre and the remembrance note stays in the responsiv
     expect(layout.top).toBeGreaterThanOrEqual(0);
     expect(layout.bottom).toBeLessThanOrEqual(layout.headerBottom + 1);
     expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  }
+});
+
+test('source acknowledgement credits and thanks Tech For Palestine clearly on narrow screens', async ({ page, isMobile }) => {
+  await page.goto('/#finale');
+  const credits = page.locator('.archive-colophon').getByRole('region', { name: 'مصدر الأسماء', exact: true });
+  await expect(credits.getByRole('heading', { name: 'مصدر الأسماء', exact: true })).toBeVisible();
+  await expect(credits.getByRole('link', { name: 'Tech For Palestine', exact: true })).toHaveAttribute('href', 'https://data.techforpalestine.org/docs/killed-in-gaza/');
+  await expect(credits.getByRole('link', { name: 'مستودع البيانات المفتوح', exact: true })).toHaveAttribute('href', 'https://github.com/TechForPalestine/palestine-datasets');
+  const thanks = credits.getByText('شكرًا للقائمين على المشروع ولكلّ مَن يسهم في توثيق الأسماء وصون الذاكرة.', { exact: true });
+  await expect(thanks).toBeVisible();
+  if (isMobile) await page.setViewportSize({ width: 320, height: 844 });
+  await credits.scrollIntoViewIfNeeded();
+  const layout = await credits.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    const paragraphs = Array.from(el.querySelectorAll('p')).map(p => {
+      const style = getComputedStyle(p);
+      return { font: parseFloat(style.fontSize), line: parseFloat(style.lineHeight) };
+    });
+    return { left: rect.left, right: rect.right, viewport: window.innerWidth, pageWidth: document.documentElement.scrollWidth, paragraphs };
+  });
+  expect(layout.left).toBeGreaterThanOrEqual(0);
+  expect(layout.right).toBeLessThanOrEqual(layout.viewport);
+  expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewport);
+  expect(layout.paragraphs).toHaveLength(2);
+  for (const paragraph of layout.paragraphs) {
+    expect(paragraph.font).toBeGreaterThanOrEqual(12);
+    expect(paragraph.line).toBeGreaterThanOrEqual(paragraph.font * 1.4);
   }
 });
 
